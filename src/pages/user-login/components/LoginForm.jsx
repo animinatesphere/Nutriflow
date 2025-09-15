@@ -17,6 +17,7 @@ const LoginForm = () => {
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [notification, setNotification] = useState(null);
 
 
   // Set your admin email(s) here
@@ -58,6 +59,7 @@ const LoginForm = () => {
     e?.preventDefault();
     if (!validateForm()) return;
     setIsLoading(true);
+    setNotification(null);
     try {
       // Supabase Auth sign in
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -66,18 +68,23 @@ const LoginForm = () => {
       });
       if (error) {
         setErrors({ general: 'Invalid email or password. Please try again.' });
+        setNotification({ type: 'error', message: 'Invalid email or password. Please try again.' });
         setIsLoading(false);
         return;
       }
       // Check if admin
       const userEmail = data?.user?.email;
-      if (ADMIN_EMAILS.includes(userEmail)) {
-        navigate('/admin/games');
-      } else {
-        navigate('/user-dashboard');
-      }
+      setNotification({ type: 'success', message: 'Login successful! Redirecting...' });
+      setTimeout(() => {
+        if (ADMIN_EMAILS.includes(userEmail)) {
+          navigate('/admin/games');
+        } else {
+          navigate('/user-dashboard');
+        }
+      }, 1000);
     } catch (error) {
       setErrors({ general: 'Login failed. Please check your connection and try again.' });
+      setNotification({ type: 'error', message: 'Login failed. Please check your connection and try again.' });
     } finally {
       setIsLoading(false);
     }
@@ -91,6 +98,21 @@ const LoginForm = () => {
       className="w-full max-w-md mx-auto"
     >
       <div className="bg-card border border-border rounded-2xl shadow-elevated p-8">
+        {/* Notification */}
+        {notification && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className={`mb-4 p-4 rounded-lg border text-center ${
+              notification.type === 'success'
+                ? 'bg-success/10 border-success/20 text-success'
+                : 'bg-destructive/10 border-destructive/20 text-destructive'
+            }`}
+          >
+            {notification.message}
+          </motion.div>
+        )}
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center w-16 h-16 bg-primary rounded-2xl mx-auto mb-4">
@@ -152,17 +174,6 @@ const LoginForm = () => {
             >
               <Icon name={showPassword ? "EyeOff" : "Eye"} size={18} />
             </button>
-          </div>
-
-          {/* Remember Me & Forgot Password */}
-          <div className="flex items-center justify-between">
-            <Checkbox
-              label="Remember me"
-              name="rememberMe"
-              checked={formData?.rememberMe}
-              onChange={handleInputChange}
-              disabled={isLoading}
-            />
             <Link
               to="/forgot-password"
               className="text-sm text-primary hover:text-primary/80 font-body font-medium transition-colors"
@@ -177,11 +188,19 @@ const LoginForm = () => {
             variant="default"
             size="lg"
             fullWidth
-            loading={isLoading}
-            iconName="LogIn"
-            iconPosition="right"
+            disabled={isLoading}
+            iconName={isLoading ? undefined : 'LogIn'}
+            iconPosition="left"
           >
-            {isLoading ? 'Signing In...' : 'Sign In'}
+            {isLoading ? (
+              <span className="flex items-center justify-center w-full">
+                <svg className="animate-spin h-5 w-5 mr-2 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                </svg>
+                Signing in...
+              </span>
+            ) : 'Sign In'}
           </Button>
         </form>
 
