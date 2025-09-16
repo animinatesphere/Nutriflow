@@ -10,7 +10,7 @@ export default defineConfig({
   // This changes the out put dir from dist to build
 
   build: {
-    outDir: "dist",
+    outDir: "build",
     chunkSizeWarningLimit: 3000,
   },
   plugins: [tsconfigPaths(), react(), tagger()],
