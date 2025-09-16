@@ -205,21 +205,7 @@ const LoginForm = () => {
         </form>
 
         {/* Demo Credentials */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-          className="mt-6 p-4 bg-muted/50 rounded-lg border border-border"
-        >
-          <div className="flex items-center space-x-2 mb-2">
-            <Icon name="Info" size={16} color="var(--color-primary)" />
-            <span className="text-sm font-body font-medium text-foreground">Demo Credentials</span>
-          </div>
-          <div className="text-sm text-muted-foreground font-mono space-y-1">
-            <p>Email: {mockCredentials?.email}</p>
-            <p>Password: {mockCredentials?.password}</p>
-          </div>
-        </motion.div>
+        {/* Demo Credentials section removed: mockCredentials is not defined */}
 
         {/* Divider */}
         <div className="relative my-8">
