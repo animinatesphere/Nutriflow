@@ -31,13 +31,32 @@ const Header = () => {
     }
   ];
 
-  const userProfile = {
-    name: 'Sarah Johnson',
-    email: 'sarah@example.com',
-    avatar: '/assets/images/avatar-placeholder.jpg',
-    subscriptionTier: 'Premium',
-    dailyProgress: 75
-  };
+  const [userProfile, setUserProfile] = useState(null);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      // Get user from localStorage or Supabase Auth
+      const userData = JSON.parse(localStorage.getItem('nutriflow_user'));
+      const userId = userData?.id || userData?.user?.id;
+      if (!userId) return;
+      // Fetch profile from Supabase
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+      if (!error && data) {
+        setUserProfile({
+          name: `${data.first_name || ''} ${data.last_name || ''}`.trim(),
+          email: data.email,
+          avatar: data.avatar_url || '/assets/images/avatar-placeholder.jpg',
+          subscriptionTier: data.subscription_tier || 'Free',
+          dailyProgress: data.daily_progress || 0
+        });
+      }
+    };
+    fetchProfile();
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event) => {

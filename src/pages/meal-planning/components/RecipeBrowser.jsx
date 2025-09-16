@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { supabase } from '../../../utils/supabaseClient';
 import { motion, AnimatePresence } from 'framer-motion';
 import Icon from '../../../components/AppIcon';
 import Image from '../../../components/AppImage';
@@ -13,98 +14,32 @@ const RecipeBrowser = ({ onRecipeSelect, onAddToMeal }) => {
   const [maxPrepTime, setMaxPrepTime] = useState('');
   const [viewMode, setViewMode] = useState('grid');
 
-  const recipes = [
-    {
-      id: 1,
-      name: "Mediterranean Quinoa Bowl",
-      image: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400",
-      cuisine: "Mediterranean",
-      diet: "Vegetarian",
-      calories: 420,
-      prepTime: 25,
-      cookTime: 15,
-      difficulty: "Easy",
-      rating: 4.8,
-      ingredients: 12,
-      description: "A nutritious bowl packed with quinoa, fresh vegetables, and Mediterranean flavors.",
-      tags: ["Healthy", "Quick", "Protein-Rich"]
-    },
-    {
-      id: 2,
-      name: "Grilled Salmon with Asparagus",
-      image: "https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=400",
-      cuisine: "American",
-      diet: "Keto",
-      calories: 380,
-      prepTime: 15,
-      cookTime: 20,
-      difficulty: "Medium",
-      rating: 4.9,
-      ingredients: 8,
-      description: "Perfectly grilled salmon with roasted asparagus and lemon herb butter.",
-      tags: ["Low-Carb", "High-Protein", "Omega-3"]
-    },
-    {
-      id: 3,
-      name: "Thai Green Curry",
-      image: "https://images.unsplash.com/photo-1455619452474-d2be8b1e70cd?w=400",
-      cuisine: "Thai",
-      diet: "Dairy-Free",
-      calories: 350,
-      prepTime: 30,
-      cookTime: 25,
-      difficulty: "Medium",
-      rating: 4.7,
-      ingredients: 15,
-      description: "Aromatic Thai curry with coconut milk, vegetables, and fragrant spices.",
-      tags: ["Spicy", "Coconut", "Authentic"]
-    },
-    {
-      id: 4,
-      name: "Avocado Toast with Poached Egg",
-      image: "https://images.unsplash.com/photo-1541519227354-08fa5d50c44d?w=400",
-      cuisine: "American",
-      diet: "Vegetarian",
-      calories: 320,
-      prepTime: 10,
-      cookTime: 5,
-      difficulty: "Easy",
-      rating: 4.6,
-      ingredients: 6,
-      description: "Classic avocado toast topped with perfectly poached egg and seasonings.",
-      tags: ["Breakfast", "Quick", "Healthy Fats"]
-    },
-    {
-      id: 5,
-      name: "Chicken Tikka Masala",
-      image: "https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=400",
-      cuisine: "Indian",
-      diet: "Gluten-Free",
-      calories: 450,
-      prepTime: 45,
-      cookTime: 30,
-      difficulty: "Hard",
-      rating: 4.8,
-      ingredients: 18,
-      description: "Rich and creamy Indian curry with tender chicken in tomato-based sauce.",
-      tags: ["Comfort Food", "Spicy", "Traditional"]
-    },
-    {
-      id: 6,
-      name: "Greek Salad with Grilled Chicken",
-      image: "https://images.unsplash.com/photo-1540420773420-3366772f4999?w=400",
-      cuisine: "Greek",
-      diet: "Keto",
-      calories: 380,
-      prepTime: 20,
-      cookTime: 15,
-      difficulty: "Easy",
-      rating: 4.5,
-      ingredients: 10,
-      description: "Fresh Greek salad with grilled chicken, feta cheese, and olive oil dressing.",
-      tags: ["Fresh", "Mediterranean", "Low-Carb"]
-    }
-  ];
+  // MOCK DATA COMMENTED OUT. Now fetched from Supabase below.
+  /*
+  const recipes = [ ... ];
+  */
+
+  // Supabase Table: recipes
+  // Columns: id, name, image, cuisine, diet, calories, prep_time, cook_time, difficulty, rating, ingredients, description, tags (text[]), created_at
+
+  const [recipes, setRecipes] = useState([]);
+
+  useEffect(() => {
+    const fetchRecipes = async () => {
+      const { data, error } = await supabase
+        .from('recipes')
+        .select('*');
+      if (!error && data) {
+        setRecipes(data.map(r => ({
+          ...r,
+          prepTime: r.prep_time,
+          cookTime: r.cook_time,
+          tags: r.tags || []
+        })));
+      }
+    };
+    fetchRecipes();
+  }, []);
 
   const cuisineOptions = [
     { value: '', label: 'All Cuisines' },

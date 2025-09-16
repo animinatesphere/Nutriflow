@@ -1,143 +1,104 @@
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import Icon from '../../../components/AppIcon';
-import Image from '../../../components/AppImage';
-import Button from '../../../components/ui/Button';
+import React, { useState, useEffect } from "react";
+import { supabase } from '../../../utils/supabaseClient';
+import { motion, AnimatePresence } from "framer-motion";
+import Icon from "../../../components/AppIcon";
+import Image from "../../../components/AppImage";
+import Button from "../../../components/ui/Button";
 
-const MealSuggestions = ({ userPreferences, nutritionGoals, onAddSuggestion, onDismissSuggestion }) => {
-  const [activeCategory, setActiveCategory] = useState('personalized');
+const MealSuggestions = ({
+  userPreferences,
+  nutritionGoals,
+  onAddSuggestion,
+  onDismissSuggestion,
+}) => {
+  const [activeCategory, setActiveCategory] = useState("personalized");
 
+  // MOCK DATA COMMENTED OUT. Now fetched from Supabase below.
+  /*
   const suggestions = {
-    personalized: [
-      {
-        id: 1,
-        name: "Protein-Packed Breakfast Bowl",
-        image: "https://images.unsplash.com/photo-1511690743698-d9d85f2fbf38?w=400",
-        reason: "Based on your high protein goals",
-        calories: 420,
-        prepTime: 15,
-        difficulty: "Easy",
-        macros: { protein: 32, carbs: 28, fat: 18 },
-        tags: ["High Protein", "Quick", "Breakfast"],
-        matchScore: 95
-      },
-      {
-        id: 2,
-        name: "Mediterranean Lunch Wrap",
-        image: "https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=400",
-        reason: "Matches your Mediterranean cuisine preference",
-        calories: 380,
-        prepTime: 10,
-        difficulty: "Easy",
-        macros: { protein: 24, carbs: 35, fat: 16 },
-        tags: ["Mediterranean", "Portable", "Lunch"],
-        matchScore: 88
-      },
-      {
-        id: 3,
-        name: "Keto Salmon Dinner",
-        image: "https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=400",
-        reason: "Perfect for your low-carb evening meals",
-        calories: 450,
-        prepTime: 25,
-        difficulty: "Medium",
-        macros: { protein: 35, carbs: 8, fat: 28 },
-        tags: ["Keto", "Low-Carb", "Dinner"],
-        matchScore: 92
-      }
-    ],
-    trending: [
-      {
-        id: 4,
-        name: "Viral TikTok Pasta",
-        image: "https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5?w=400",
-        reason: "Trending this week",
-        calories: 520,
-        prepTime: 20,
-        difficulty: "Easy",
-        macros: { protein: 18, carbs: 65, fat: 22 },
-        tags: ["Trending", "Pasta", "Social Media"],
-        matchScore: 75
-      },
-      {
-        id: 5,
-        name: "Buddha Bowl Craze",
-        image: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400",
-        reason: "Popular among health enthusiasts",
-        calories: 380,
-        prepTime: 30,
-        difficulty: "Medium",
-        macros: { protein: 22, carbs: 45, fat: 14 },
-        tags: ["Healthy", "Colorful", "Instagram"],
-        matchScore: 82
-      }
-    ],
-    seasonal: [
-      {
-        id: 6,
-        name: "Autumn Harvest Soup",
-        image: "https://images.unsplash.com/photo-1476718406336-bb5a9690ee2a?w=400",
-        reason: "Perfect for fall season",
-        calories: 280,
-        prepTime: 45,
-        difficulty: "Medium",
-        macros: { protein: 12, carbs: 38, fat: 8 },
-        tags: ["Seasonal", "Comfort", "Soup"],
-        matchScore: 78
-      },
-      {
-        id: 7,
-        name: "Pumpkin Spice Smoothie",
-        image: "https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=400",
-        reason: "Seasonal favorite ingredient",
-        calories: 320,
-        prepTime: 5,
-        difficulty: "Easy",
-        macros: { protein: 18, carbs: 42, fat: 12 },
-        tags: ["Seasonal", "Smoothie", "Pumpkin"],
-        matchScore: 70
-      }
-    ],
-    quick: [
-      {
-        id: 8,
-        name: "5-Minute Avocado Toast",
-        image: "https://images.unsplash.com/photo-1541519227354-08fa5d50c44d?w=400",
-        reason: "Ready in under 10 minutes",
-        calories: 340,
-        prepTime: 5,
-        difficulty: "Easy",
-        macros: { protein: 12, carbs: 28, fat: 22 },
-        tags: ["Quick", "Breakfast", "Healthy Fats"],
-        matchScore: 85
-      },
-      {
-        id: 9,
-        name: "Microwave Mug Omelet",
-        image: "https://images.unsplash.com/photo-1525351484163-7529414344d8?w=400",
-        reason: "Perfect for busy mornings",
-        calories: 280,
-        prepTime: 3,
-        difficulty: "Easy",
-        macros: { protein: 24, carbs: 4, fat: 18 },
-        tags: ["Quick", "Microwave", "Protein"],
-        matchScore: 80
-      }
-    ]
+    personalized: [...],
+    trending: [...],
+    seasonal: [...],
+    quick: [...],
   };
+  */
+
+  // Supabase Table: meal_suggestions
+  // Columns: id, category, name, image, reason, calories, prep_time, difficulty, protein, carbs, fat, tags, match_score, created_at
+
+  const [suggestions, setSuggestions] = useState({
+    personalized: [],
+    trending: [],
+    seasonal: [],
+    quick: []
+  });
+
+  useEffect(() => {
+    const fetchSuggestions = async () => {
+      const { data, error } = await supabase
+        .from('meal_suggestions')
+        .select('*');
+      if (!error && data) {
+        // Group by category
+        const grouped = {
+          personalized: [],
+          trending: [],
+          seasonal: [],
+          quick: []
+        };
+        data.forEach(s => {
+          if (grouped[s.category]) {
+            grouped[s.category].push({
+              ...s,
+              macros: {
+                protein: s.protein,
+                carbs: s.carbs,
+                fat: s.fat
+              },
+              prepTime: s.prep_time,
+              matchScore: s.match_score,
+              tags: s.tags || []
+            });
+          }
+        });
+        setSuggestions(grouped);
+      }
+    };
+    fetchSuggestions();
+  }, []);
 
   const categories = [
-    { id: 'personalized', name: 'For You', icon: 'User', count: suggestions?.personalized?.length },
-    { id: 'trending', name: 'Trending', icon: 'TrendingUp', count: suggestions?.trending?.length },
-    { id: 'seasonal', name: 'Seasonal', icon: 'Leaf', count: suggestions?.seasonal?.length },
-    { id: 'quick', name: 'Quick Meals', icon: 'Zap', count: suggestions?.quick?.length }
+    {
+      id: "personalized",
+      name: "For You",
+      icon: "User",
+      count: suggestions?.personalized?.length,
+    },
+    {
+      id: "trending",
+      name: "Trending",
+      icon: "TrendingUp",
+      count: suggestions?.trending?.length,
+    },
+    {
+      id: "seasonal",
+      name: "Seasonal",
+      icon: "Leaf",
+      count: suggestions?.seasonal?.length,
+    },
+    {
+      id: "quick",
+      name: "Quick Meals",
+      icon: "Zap",
+      count: suggestions?.quick?.length,
+    },
   ];
 
   const getMatchScoreColor = (score) => {
-    if (score >= 90) return 'text-success';
-    if (score >= 80) return 'text-primary';
-    if (score >= 70) return 'text-warning';
-    return 'text-muted-foreground';
+    if (score >= 90) return "text-success";
+    if (score >= 80) return "text-primary";
+    if (score >= 70) return "text-warning";
+    return "text-muted-foreground";
   };
 
   const SuggestionCard = ({ suggestion }) => (
@@ -155,11 +116,15 @@ const MealSuggestions = ({ userPreferences, nutritionGoals, onAddSuggestion, onD
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-        
+
         {/* Match Score */}
         <div className="absolute top-3 left-3 flex items-center space-x-1 bg-black/70 rounded-full px-2 py-1">
           <Icon name="Target" size={12} color="white" />
-          <span className={`text-xs font-mono font-semibold ${getMatchScoreColor(suggestion?.matchScore)}`}>
+          <span
+            className={`text-xs font-mono font-semibold ${getMatchScoreColor(
+              suggestion?.matchScore
+            )}`}
+          >
             {suggestion?.matchScore}%
           </span>
         </div>
@@ -211,19 +176,27 @@ const MealSuggestions = ({ userPreferences, nutritionGoals, onAddSuggestion, onD
         {/* Macros */}
         <div className="grid grid-cols-4 gap-2 mb-3 text-xs">
           <div className="text-center">
-            <div className="font-mono font-semibold text-foreground">{suggestion?.calories}</div>
+            <div className="font-mono font-semibold text-foreground">
+              {suggestion?.calories}
+            </div>
             <div className="text-muted-foreground">cal</div>
           </div>
           <div className="text-center">
-            <div className="font-mono font-semibold text-success">{suggestion?.macros?.protein}g</div>
+            <div className="font-mono font-semibold text-success">
+              {suggestion?.macros?.protein}g
+            </div>
             <div className="text-muted-foreground">protein</div>
           </div>
           <div className="text-center">
-            <div className="font-mono font-semibold text-warning">{suggestion?.macros?.carbs}g</div>
+            <div className="font-mono font-semibold text-warning">
+              {suggestion?.macros?.carbs}g
+            </div>
             <div className="text-muted-foreground">carbs</div>
           </div>
           <div className="text-center">
-            <div className="font-mono font-semibold text-accent">{suggestion?.macros?.fat}g</div>
+            <div className="font-mono font-semibold text-accent">
+              {suggestion?.macros?.fat}g
+            </div>
             <div className="text-muted-foreground">fat</div>
           </div>
         </div>
@@ -231,7 +204,10 @@ const MealSuggestions = ({ userPreferences, nutritionGoals, onAddSuggestion, onD
         {/* Tags */}
         <div className="flex flex-wrap gap-1 mb-3">
           {suggestion?.tags?.slice(0, 3)?.map((tag, index) => (
-            <span key={index} className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-full">
+            <span
+              key={index}
+              className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-full"
+            >
               {tag}
             </span>
           ))}
@@ -239,12 +215,7 @@ const MealSuggestions = ({ userPreferences, nutritionGoals, onAddSuggestion, onD
 
         {/* Actions */}
         <div className="flex space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            fullWidth
-            iconName="Eye"
-          >
+          <Button variant="outline" size="sm" fullWidth iconName="Eye">
             View Recipe
           </Button>
           <Button
@@ -276,12 +247,8 @@ const MealSuggestions = ({ userPreferences, nutritionGoals, onAddSuggestion, onD
             </p>
           </div>
         </div>
-        
-        <Button
-          variant="outline"
-          size="sm"
-          iconName="RefreshCw"
-        >
+
+        <Button variant="outline" size="sm" iconName="RefreshCw">
           Refresh
         </Button>
       </div>
@@ -293,21 +260,23 @@ const MealSuggestions = ({ userPreferences, nutritionGoals, onAddSuggestion, onD
             onClick={() => setActiveCategory(category?.id)}
             className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-200 whitespace-nowrap ${
               activeCategory === category?.id
-                ? 'bg-primary text-primary-foreground shadow-soft'
-                : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                ? "bg-primary text-primary-foreground shadow-soft"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted"
             }`}
           >
-            <Icon 
-              name={category?.icon} 
-              size={16} 
-              color={activeCategory === category?.id ? 'white' : 'currentColor'} 
+            <Icon
+              name={category?.icon}
+              size={16}
+              color={activeCategory === category?.id ? "white" : "currentColor"}
             />
             <span className="font-body font-medium">{category?.name}</span>
-            <span className={`text-xs px-1.5 py-0.5 rounded-full ${
-              activeCategory === category?.id 
-                ? 'bg-primary-foreground/20 text-primary-foreground' 
-                : 'bg-muted text-muted-foreground'
-            }`}>
+            <span
+              className={`text-xs px-1.5 py-0.5 rounded-full ${
+                activeCategory === category?.id
+                  ? "bg-primary-foreground/20 text-primary-foreground"
+                  : "bg-muted text-muted-foreground"
+              }`}
+            >
               {category?.count}
             </span>
           </button>
@@ -330,9 +299,14 @@ const MealSuggestions = ({ userPreferences, nutritionGoals, onAddSuggestion, onD
         </AnimatePresence>
 
         {/* Empty State */}
-        {(!suggestions?.[activeCategory] || suggestions?.[activeCategory]?.length === 0) && (
+        {(!suggestions?.[activeCategory] ||
+          suggestions?.[activeCategory]?.length === 0) && (
           <div className="text-center py-12">
-            <Icon name="Search" size={48} color="var(--color-muted-foreground)" />
+            <Icon
+              name="Search"
+              size={48}
+              color="var(--color-muted-foreground)"
+            />
             <h3 className="text-lg font-heading font-semibold text-foreground mt-4">
               No suggestions available
             </h3>
@@ -347,13 +321,11 @@ const MealSuggestions = ({ userPreferences, nutritionGoals, onAddSuggestion, onD
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2 text-sm text-muted-foreground">
             <Icon name="Info" size={14} />
-            <span>Suggestions based on your nutrition goals and meal history</span>
+            <span>
+              Suggestions based on your nutrition goals and meal history
+            </span>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            iconName="Settings"
-          >
+          <Button variant="ghost" size="sm" iconName="Settings">
             Update Preferences
           </Button>
         </div>

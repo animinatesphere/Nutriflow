@@ -1,50 +1,65 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { supabase } from '../../../utils/supabaseClient';
 import { motion } from 'framer-motion';
 import Icon from '../../../components/AppIcon';
 import Button from '../../../components/ui/Button';
 
-const NutritionSummary = ({ weeklyData, goals, onGoalUpdate }) => {
+const NutritionSummary = ({ userId, goals, onGoalUpdate }) => {
+  // MOCK DATA COMMENTED OUT. Now fetched from Supabase below.
+  /*
   const macroData = [
-    {
-      name: 'Calories',
-      current: weeklyData?.calories,
-      target: goals?.calories,
-      unit: 'kcal',
-      color: 'var(--color-primary)',
-      icon: 'Flame'
-    },
-    {
-      name: 'Protein',
-      current: weeklyData?.protein,
-      target: goals?.protein,
-      unit: 'g',
-      color: 'var(--color-success)',
-      icon: 'Beef'
-    },
-    {
-      name: 'Carbs',
-      current: weeklyData?.carbs,
-      target: goals?.carbs,
-      unit: 'g',
-      color: 'var(--color-warning)',
-      icon: 'Wheat'
-    },
-    {
-      name: 'Fat',
-      current: weeklyData?.fat,
-      target: goals?.fat,
-      unit: 'g',
-      color: 'var(--color-accent)',
-      icon: 'Droplets'
-    }
+    { name: 'Calories', current: weeklyData?.calories, target: goals?.calories, unit: 'kcal', color: 'var(--color-primary)', icon: 'Flame' },
+    { name: 'Protein', current: weeklyData?.protein, target: goals?.protein, unit: 'g', color: 'var(--color-success)', icon: 'Beef' },
+    { name: 'Carbs', current: weeklyData?.carbs, target: goals?.carbs, unit: 'g', color: 'var(--color-warning)', icon: 'Wheat' },
+    { name: 'Fat', current: weeklyData?.fat, target: goals?.fat, unit: 'g', color: 'var(--color-accent)', icon: 'Droplets' }
   ];
-
   const dailyAverages = {
     calories: Math.round(weeklyData?.calories / 7),
     protein: Math.round(weeklyData?.protein / 7),
     carbs: Math.round(weeklyData?.carbs / 7),
     fat: Math.round(weeklyData?.fat / 7)
   };
+  */
+
+  // Supabase Table: nutrition_summary
+  // Columns: id, user_id, week_start, calories, protein, carbs, fat, meals_planned, recipes_tried, prep_time, created_at
+
+  const [macroData, setMacroData] = useState([]);
+  const [dailyAverages, setDailyAverages] = useState({ calories: 0, protein: 0, carbs: 0, fat: 0 });
+  const [weeklyProgress, setWeeklyProgress] = useState({ meals_planned: 0, recipes_tried: 0, prep_time: 0 });
+
+  useEffect(() => {
+    const fetchNutritionSummary = async () => {
+      if (!userId) return;
+      const { data, error } = await supabase
+        .from('nutrition_summary')
+        .select('*')
+        .eq('user_id', userId)
+        .order('week_start', { ascending: false })
+        .limit(1);
+      if (!error && data && data.length > 0) {
+        const summary = data[0];
+        setMacroData([
+          { name: 'Calories', current: summary.calories, target: goals?.calories, unit: 'kcal', color: 'var(--color-primary)', icon: 'Flame' },
+          { name: 'Protein', current: summary.protein, target: goals?.protein, unit: 'g', color: 'var(--color-success)', icon: 'Beef' },
+          { name: 'Carbs', current: summary.carbs, target: goals?.carbs, unit: 'g', color: 'var(--color-warning)', icon: 'Wheat' },
+          { name: 'Fat', current: summary.fat, target: goals?.fat, unit: 'g', color: 'var(--color-accent)', icon: 'Droplets' }
+        ]);
+        setDailyAverages({
+          calories: Math.round(summary.calories / 7),
+          protein: Math.round(summary.protein / 7),
+          carbs: Math.round(summary.carbs / 7),
+          fat: Math.round(summary.fat / 7)
+        });
+        setWeeklyProgress({
+          meals_planned: summary.meals_planned,
+          recipes_tried: summary.recipes_tried,
+          prep_time: summary.prep_time
+        });
+      }
+    };
+    fetchNutritionSummary();
+  }, [userId, goals]);
 
   const getProgressPercentage = (current, target) => {
     return Math.min((current / target) * 100, 100);
@@ -59,7 +74,6 @@ const NutritionSummary = ({ weeklyData, goals, onGoalUpdate }) => {
   const MacroCard = ({ macro }) => {
     const percentage = getProgressPercentage(macro?.current, macro?.target);
     const progressColor = getProgressColor(percentage);
-    
     return (
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -68,10 +82,7 @@ const NutritionSummary = ({ weeklyData, goals, onGoalUpdate }) => {
       >
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center space-x-2">
-            <div 
-              className="p-2 rounded-lg"
-              style={{ backgroundColor: `${macro?.color}20` }}
-            >
+            <div className="p-2 rounded-lg" style={{ backgroundColor: `${macro?.color}20` }}>
               <Icon name={macro?.icon} size={16} color={macro?.color} />
             </div>
             <span className="font-heading font-semibold text-sm text-foreground">
@@ -185,38 +196,36 @@ const NutritionSummary = ({ weeklyData, goals, onGoalUpdate }) => {
               </div>
               <div>
                 <div className="font-heading font-semibold text-foreground">
-                  18 meals planned
+                  {weeklyProgress.meals_planned} meals planned
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  86% of weekly goal
+                  {/* Example: percent of weekly goal, can be calculated if goal available */}
                 </div>
               </div>
             </div>
-            
             <div className="flex items-center space-x-3">
               <div className="p-2 bg-primary/20 rounded-lg">
                 <Icon name="Utensils" size={16} color="var(--color-primary)" />
               </div>
               <div>
                 <div className="font-heading font-semibold text-foreground">
-                  12 recipes tried
+                  {weeklyProgress.recipes_tried} recipes tried
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  3 new this week
+                  {/* Example: new recipes this week, can be calculated if tracked */}
                 </div>
               </div>
             </div>
-            
             <div className="flex items-center space-x-3">
               <div className="p-2 bg-warning/20 rounded-lg">
                 <Icon name="Clock" size={16} color="var(--color-warning)" />
               </div>
               <div>
                 <div className="font-heading font-semibold text-foreground">
-                  4.2h prep time
+                  {weeklyProgress.prep_time}h prep time
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  36min/day average
+                  {/* Example: average per day, can be calculated if needed */}
                 </div>
               </div>
             </div>

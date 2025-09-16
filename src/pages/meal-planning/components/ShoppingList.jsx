@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { supabase } from '../../../utils/supabaseClient';
 import { motion, AnimatePresence } from 'framer-motion';
 import Icon from '../../../components/AppIcon';
 import Button from '../../../components/ui/Button';
@@ -9,108 +10,28 @@ const ShoppingList = ({ plannedMeals, onGenerateList, onExportList }) => {
   const [groupBy, setGroupBy] = useState('category');
   const [showChecked, setShowChecked] = useState(true);
 
-  const shoppingItems = [
-    {
-      id: 1,
-      name: "Quinoa",
-      quantity: "2 cups",
-      category: "Grains & Cereals",
-      store: "Pantry",
-      price: 4.99,
-      recipes: ["Mediterranean Quinoa Bowl"],
-      priority: "high"
-    },
-    {
-      id: 2,
-      name: "Fresh Salmon Fillet",
-      quantity: "1.5 lbs",
-      category: "Meat & Seafood",
-      store: "Fresh",
-      price: 18.99,
-      recipes: ["Grilled Salmon with Asparagus"],
-      priority: "high"
-    },
-    {
-      id: 3,
-      name: "Asparagus",
-      quantity: "1 bunch",
-      category: "Vegetables",
-      store: "Produce",
-      price: 3.49,
-      recipes: ["Grilled Salmon with Asparagus"],
-      priority: "medium"
-    },
-    {
-      id: 4,
-      name: "Coconut Milk",
-      quantity: "2 cans",
-      category: "Pantry",
-      store: "Pantry",
-      price: 2.98,
-      recipes: ["Thai Green Curry"],
-      priority: "medium"
-    },
-    {
-      id: 5,
-      name: "Avocados",
-      quantity: "4 pieces",
-      category: "Vegetables",
-      store: "Produce",
-      price: 5.96,
-      recipes: ["Avocado Toast with Poached Egg"],
-      priority: "high"
-    },
-    {
-      id: 6,
-      name: "Free-Range Eggs",
-      quantity: "1 dozen",
-      category: "Dairy & Eggs",
-      store: "Dairy",
-      price: 4.49,
-      recipes: ["Avocado Toast with Poached Egg"],
-      priority: "high"
-    },
-    {
-      id: 7,
-      name: "Chicken Breast",
-      quantity: "2 lbs",
-      category: "Meat & Seafood",
-      store: "Fresh",
-      price: 12.98,
-      recipes: ["Chicken Tikka Masala", "Greek Salad with Grilled Chicken"],
-      priority: "high"
-    },
-    {
-      id: 8,
-      name: "Greek Yogurt",
-      quantity: "32 oz",
-      category: "Dairy & Eggs",
-      store: "Dairy",
-      price: 5.99,
-      recipes: ["Greek Salad with Grilled Chicken"],
-      priority: "medium"
-    },
-    {
-      id: 9,
-      name: "Cherry Tomatoes",
-      quantity: "2 pints",
-      category: "Vegetables",
-      store: "Produce",
-      price: 4.98,
-      recipes: ["Mediterranean Quinoa Bowl", "Greek Salad with Grilled Chicken"],
-      priority: "medium"
-    },
-    {
-      id: 10,
-      name: "Feta Cheese",
-      quantity: "8 oz",
-      category: "Dairy & Eggs",
-      store: "Dairy",
-      price: 6.49,
-      recipes: ["Greek Salad with Grilled Chicken"],
-      priority: "low"
-    }
-  ];
+  // MOCK DATA COMMENTED OUT. Now fetched from Supabase below.
+  /*
+  const shoppingItems = [ ... ];
+  */
+
+  // Supabase Table: shopping_items
+  // Columns: id, user_id, name, quantity, category, store, price, recipes (text[]), priority, checked (boolean), created_at
+
+  const [shoppingItems, setShoppingItems] = useState([]);
+
+  useEffect(() => {
+    const fetchShoppingItems = async () => {
+      // You may want to filter by user_id or plannedMeals
+      const { data, error } = await supabase
+        .from('shopping_items')
+        .select('*');
+      if (!error && data) {
+        setShoppingItems(data);
+      }
+    };
+    fetchShoppingItems();
+  }, []);
 
   const toggleItem = (itemId) => {
     const newCheckedItems = new Set(checkedItems);

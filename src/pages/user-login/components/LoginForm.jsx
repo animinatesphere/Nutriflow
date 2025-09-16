@@ -1,56 +1,55 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import Icon from '../../../components/AppIcon';
-import Button from '../../../components/ui/Button';
-import Input from '../../../components/ui/Input';
-import { Checkbox } from '../../../components/ui/Checkbox';
-import { supabase } from '../../../utils/supabaseClient';
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import Icon from "../../../components/AppIcon";
+import Button from "../../../components/ui/Button";
+import Input from "../../../components/ui/Input";
+import { Checkbox } from "../../../components/ui/Checkbox";
+import { supabase } from "../../../utils/supabaseClient";
 
 const LoginForm = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    rememberMe: false
+    email: "",
+    password: "",
+    rememberMe: false,
   });
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [notification, setNotification] = useState(null);
 
-
   // Set your admin email(s) here
-  const ADMIN_EMAILS = ['youradmin@email.com']; // Replace with your real admin email(s)
+  const ADMIN_EMAILS = ["pelumidaniel01@gmail.com"]; // Replace with your real admin email(s)
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e?.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: type === "checkbox" ? checked : value,
     }));
-    
+
     // Clear error when user starts typing
     if (errors?.[name]) {
-      setErrors(prev => ({ ...prev, [name]: '' }));
+      setErrors((prev) => ({ ...prev, [name]: "" }));
     }
   };
 
   const validateForm = () => {
     const newErrors = {};
-    
+
     if (!formData?.email) {
-      newErrors.email = 'Email is required';
+      newErrors.email = "Email is required";
     } else if (!/\S+@\S+\.\S+/?.test(formData?.email)) {
-      newErrors.email = 'Please enter a valid email address';
+      newErrors.email = "Please enter a valid email address";
     }
-    
+
     if (!formData?.password) {
-      newErrors.password = 'Password is required';
+      newErrors.password = "Password is required";
     } else if (formData?.password?.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
+      newErrors.password = "Password must be at least 6 characters";
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors)?.length === 0;
   };
@@ -64,27 +63,38 @@ const LoginForm = () => {
       // Supabase Auth sign in
       const { data, error } = await supabase.auth.signInWithPassword({
         email: formData.email,
-        password: formData.password
+        password: formData.password,
       });
       if (error) {
-        setErrors({ general: 'Invalid email or password. Please try again.' });
-        setNotification({ type: 'error', message: 'Invalid email or password. Please try again.' });
+        setErrors({ general: "Invalid email or password. Please try again." });
+        setNotification({
+          type: "error",
+          message: "Invalid email or password. Please try again.",
+        });
         setIsLoading(false);
         return;
       }
       // Check if admin
       const userEmail = data?.user?.email;
-      setNotification({ type: 'success', message: 'Login successful! Redirecting...' });
+      setNotification({
+        type: "success",
+        message: "Login successful! Redirecting...",
+      });
       setTimeout(() => {
         if (ADMIN_EMAILS.includes(userEmail)) {
-          navigate('/admin/games');
+          navigate("/admin");
         } else {
-          navigate('/user-dashboard');
+          navigate("/user-dashboard");
         }
       }, 1000);
     } catch (error) {
-      setErrors({ general: 'Login failed. Please check your connection and try again.' });
-      setNotification({ type: 'error', message: 'Login failed. Please check your connection and try again.' });
+      setErrors({
+        general: "Login failed. Please check your connection and try again.",
+      });
+      setNotification({
+        type: "error",
+        message: "Login failed. Please check your connection and try again.",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -105,9 +115,9 @@ const LoginForm = () => {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             className={`mb-4 p-4 rounded-lg border text-center ${
-              notification.type === 'success'
-                ? 'bg-success/10 border-success/20 text-success'
-                : 'bg-destructive/10 border-destructive/20 text-destructive'
+              notification.type === "success"
+                ? "bg-success/10 border-success/20 text-success"
+                : "bg-destructive/10 border-destructive/20 text-destructive"
             }`}
           >
             {notification.message}
@@ -134,8 +144,14 @@ const LoginForm = () => {
             className="mb-6 p-4 bg-destructive/10 border border-destructive/20 rounded-lg"
           >
             <div className="flex items-center space-x-2">
-              <Icon name="AlertCircle" size={16} color="var(--color-destructive)" />
-              <p className="text-sm text-destructive font-body">{errors?.general}</p>
+              <Icon
+                name="AlertCircle"
+                size={16}
+                color="var(--color-destructive)"
+              />
+              <p className="text-sm text-destructive font-body">
+                {errors?.general}
+              </p>
             </div>
           </motion.div>
         )}
@@ -189,18 +205,36 @@ const LoginForm = () => {
             size="lg"
             fullWidth
             disabled={isLoading}
-            iconName={isLoading ? undefined : 'LogIn'}
+            iconName={isLoading ? undefined : "LogIn"}
             iconPosition="left"
           >
             {isLoading ? (
               <span className="flex items-center justify-center w-full">
-                <svg className="animate-spin h-5 w-5 mr-2 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                <svg
+                  className="animate-spin h-5 w-5 mr-2 text-primary"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8v8z"
+                  ></path>
                 </svg>
                 Signing in...
               </span>
-            ) : 'Sign In'}
+            ) : (
+              "Sign In"
+            )}
           </Button>
         </form>
 
@@ -213,7 +247,9 @@ const LoginForm = () => {
             <div className="w-full border-t border-border" />
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="px-4 bg-card text-muted-foreground font-body">Or continue with</span>
+            <span className="px-4 bg-card text-muted-foreground font-body">
+              Or continue with
+            </span>
           </div>
         </div>
 
@@ -244,7 +280,7 @@ const LoginForm = () => {
         {/* Sign Up Link */}
         <div className="text-center mt-8 pt-6 border-t border-border">
           <p className="text-muted-foreground font-body">
-            Don't have an account?{' '}
+            Don't have an account?{" "}
             <Link
               to="/user-registration"
               className="text-primary hover:text-primary/80 font-medium transition-colors"

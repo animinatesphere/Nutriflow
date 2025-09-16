@@ -17,59 +17,51 @@ const MealPlanningPage = () => {
   const [selectedMeal, setSelectedMeal] = useState(null);
   const [showMealModal, setShowMealModal] = useState(false);
 
-  // Mock data for planned meals
-  const [plannedMeals, setPlannedMeals] = useState([
-    {
-      id: 1,
-      day: 'monday',
-      type: 'breakfast',
-      name: 'Avocado Toast with Poached Egg',
-      image: 'https://images.unsplash.com/photo-1541519227354-08fa5d50c44d?w=400',
-      calories: 320,
-      prepTime: 10,
-      macros: { protein: 12, carbs: 28, fat: 22 }
-    },
-    {
-      id: 2,
-      day: 'monday',
-      type: 'lunch',
-      name: 'Mediterranean Quinoa Bowl',
-      image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400',
-      calories: 420,
-      prepTime: 25,
-      macros: { protein: 18, carbs: 52, fat: 16 }
-    },
-    {
-      id: 3,
-      day: 'tuesday',
-      type: 'breakfast',
-      name: 'Greek Yogurt Parfait',
-      image: 'https://images.unsplash.com/photo-1488477181946-6428a0291777?w=400',
-      calories: 280,
-      prepTime: 5,
-      macros: { protein: 20, carbs: 32, fat: 8 }
-    },
-    {
-      id: 4,
-      day: 'tuesday',
-      type: 'dinner',
-      name: 'Grilled Salmon with Asparagus',
-      image: 'https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=400',
-      calories: 380,
-      prepTime: 20,
-      macros: { protein: 35, carbs: 8, fat: 22 }
-    },
-    {
-      id: 5,
-      day: 'wednesday',
-      type: 'lunch',
-      name: 'Thai Green Curry',
-      image: 'https://images.unsplash.com/photo-1455619452474-d2be8b1e70cd?w=400',
-      calories: 350,
-      prepTime: 30,
-      macros: { protein: 25, carbs: 28, fat: 18 }
-    }
-  ]);
+  // Fetch planned meals from Supabase
+  const [plannedMeals, setPlannedMeals] = useState([]);
+
+  useEffect(() => {
+    const fetchMeals = async () => {
+      const userData = JSON.parse(localStorage.getItem('nutriflow_user'));
+      const userId = userData?.id || userData?.user?.id;
+      if (!userId) return;
+      const { data, error } = await supabase
+        .from('planned_meals')
+        .select('*')
+        .eq('user_id', userId);
+      if (!error && data) {
+        // Map macros for compatibility with old code
+        setPlannedMeals(
+          data.map(meal => ({
+            ...meal,
+            macros: {
+              protein: meal.protein,
+              carbs: meal.carbs,
+              fat: meal.fat
+            }
+          }))
+        );
+      }
+    };
+    fetchMeals();
+  }, []);
+
+  // Supabase Table Mapping for Admin Management:
+  // Table: planned_meals
+  // Columns:
+  //   id (uuid or serial, PK)
+  //   user_id (uuid, FK to profiles)
+  //   day (text)
+  //   type (text: breakfast/lunch/dinner)
+  //   name (text)
+  //   image (text)
+  //   calories (integer)
+  //   prep_time (integer)
+  //   protein (integer)
+  //   carbs (integer)
+  //   fat (integer)
+  //   created_at (timestamp)
+  // Admin can add/edit/delete meals in this table via an admin UI.
 
   // Mock nutrition data
   const weeklyNutritionData = {

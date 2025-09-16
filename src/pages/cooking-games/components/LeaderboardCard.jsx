@@ -1,8 +1,47 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { supabase } from '../../../utils/supabaseClient';
 import Icon from '../../../components/AppIcon';
 
 
-const LeaderboardCard = ({ leaderboard, currentUser }) => {
+// MOCK DATA COMMENTED OUT. Now fetched from Supabase below.
+/*
+const leaderboard = [ ... ];
+const currentUser = { ... };
+*/
+
+// Supabase Table: game_leaderboard
+// Columns: id, user_id, name, level, games_played, weekly_score, weekly_gain, is_online, is_premium, rank, created_at
+
+const LeaderboardCard = ({ userId }) => {
+  const [leaderboard, setLeaderboard] = useState([]);
+  const [currentUser, setCurrentUser] = useState(null);
+
+  useEffect(() => {
+    const fetchLeaderboard = async () => {
+      // Fetch top 10 leaderboard
+      const { data, error } = await supabase
+        .from('game_leaderboard')
+        .select('*')
+        .order('weekly_score', { ascending: false })
+        .limit(10);
+      if (!error && data) {
+        setLeaderboard(data);
+      }
+    };
+    const fetchCurrentUser = async () => {
+      if (!userId) return;
+      const { data, error } = await supabase
+        .from('game_leaderboard')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+      if (!error && data) {
+        setCurrentUser(data);
+      }
+    };
+    fetchLeaderboard();
+    fetchCurrentUser();
+  }, [userId]);
   const getRankIcon = (rank) => {
     switch (rank) {
       case 1:
@@ -43,11 +82,11 @@ const LeaderboardCard = ({ leaderboard, currentUser }) => {
         {leaderboard?.map((player, index) => {
           const rank = index + 1;
           const rankInfo = getRankIcon(rank);
-          const isCurrentUser = player?.id === currentUser?.id;
+          const isCurrentUser = player?.user_id === currentUser?.user_id;
 
           return (
             <div
-              key={player?.id}
+              key={player?.user_id}
               className={`flex items-center space-x-4 p-3 rounded-lg transition-colors ${
                 isCurrentUser
                   ? 'bg-primary/10 border border-primary/20' :'hover:bg-muted/50'
@@ -68,7 +107,7 @@ const LeaderboardCard = ({ leaderboard, currentUser }) => {
                     {player?.name?.split(' ')?.map(n => n?.[0])?.join('')}
                   </span>
                 </div>
-                {player?.isOnline && (
+                {player?.is_online && (
                   <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-success border-2 border-card rounded-full" />
                 )}
               </div>
@@ -83,7 +122,7 @@ const LeaderboardCard = ({ leaderboard, currentUser }) => {
                       <span className="ml-2 text-xs text-primary">(You)</span>
                     )}
                   </p>
-                  {player?.isPremium && (
+                  {player?.is_premium && (
                     <Icon name="Crown" size={14} color="var(--color-accent)" />
                   )}
                 </div>
@@ -92,18 +131,18 @@ const LeaderboardCard = ({ leaderboard, currentUser }) => {
                     Level {player?.level}
                   </span>
                   <span className="text-xs text-muted-foreground">
-                    {player?.gamesPlayed} games
+                    {player?.games_played} games
                   </span>
                 </div>
               </div>
               {/* Score */}
               <div className="text-right">
                 <p className="font-mono font-bold text-card-foreground">
-                  {player?.weeklyScore?.toLocaleString()}
+                  {player?.weekly_score?.toLocaleString()}
                 </p>
                 <div className="flex items-center space-x-1 mt-1">
                   <Icon name="TrendingUp" size={12} color="var(--color-success)" />
-                  <span className="text-xs text-success">+{player?.weeklyGain}</span>
+                  <span className="text-xs text-success">+{player?.weekly_gain}</span>
                 </div>
               </div>
             </div>
@@ -111,7 +150,7 @@ const LeaderboardCard = ({ leaderboard, currentUser }) => {
         })}
       </div>
       {/* Current User Position (if not in top 10) */}
-      {!leaderboard?.some(player => player?.id === currentUser?.id) && (
+      {currentUser && !leaderboard?.some(player => player?.user_id === currentUser?.user_id) && (
         <>
           <div className="border-t border-border my-4" />
           <div className="flex items-center space-x-4 p-3 bg-primary/10 border border-primary/20 rounded-lg">
@@ -133,7 +172,7 @@ const LeaderboardCard = ({ leaderboard, currentUser }) => {
             </div>
             <div className="text-right">
               <p className="font-mono font-bold text-card-foreground">
-                {currentUser?.weeklyScore?.toLocaleString()}
+                {currentUser?.weekly_score?.toLocaleString()}
               </p>
             </div>
           </div>

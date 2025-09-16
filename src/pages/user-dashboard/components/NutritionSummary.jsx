@@ -2,8 +2,16 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import Icon from '../../../components/AppIcon';
 
-const NutritionSummary = ({ nutritionData, onQuickLog }) => {
-  const { calories, protein, carbs, fats, water, dailyGoal } = nutritionData;
+const NutritionSummary = ({ nutritionData = {}, onQuickLog }) => {
+  // Provide default values to avoid destructuring errors
+  const {
+    calories = { current: 0, goal: 0 },
+    protein = { current: 0, goal: 0 },
+    carbs = { current: 0, goal: 0 },
+    fats = { current: 0, goal: 0 },
+    water = { current: 0, goal: 0 },
+    dailyGoal = 0
+  } = nutritionData || {};
   
   const macronutrients = [
     { name: 'Protein', value: protein?.current, goal: protein?.goal, color: 'bg-blue-500', unit: 'g' },

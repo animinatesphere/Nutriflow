@@ -32,6 +32,9 @@ const RegistrationForm = ({ onSubmit, isLoading: parentLoading }) => {
   const [passwordStrength, setPasswordStrength] = useState(0);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  // Fix: define missing state variables
+  const [showVerifyEmail, setShowVerifyEmail] = useState(false);
+  const [isVerified, setIsVerified] = useState(false);
 
   const ageRangeOptions = [
     { value: "18-24", label: "18-24 years" },
@@ -347,7 +350,309 @@ const RegistrationForm = ({ onSubmit, isLoading: parentLoading }) => {
       </motion.div>
     );
   }
-  // ...existing code (the original registration form)
+  // Registration form UI restored
+  return (
+    <motion.form
+      onSubmit={handleSubmit}
+      className="space-y-6"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
+      {/* Notification */}
+      <AnimatePresence>
+        {notification && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className={`mb-4 p-4 rounded-lg border text-center ${
+              notification.type === "success"
+                ? "bg-success/10 border-success/20 text-success"
+                : "bg-destructive/10 border-destructive/20 text-destructive"
+            }`}
+          >
+            {notification.message}
+          </motion.div>
+        )}
+      </AnimatePresence>
+      {/* Personal Information Section */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-heading font-semibold text-foreground flex items-center">
+          <Icon name="User" size={20} className="mr-2 text-primary" />
+          Personal Information
+        </h3>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Input
+            label="First Name"
+            type="text"
+            placeholder="Enter your first name"
+            value={formData?.firstName}
+            onChange={(e) => handleInputChange("firstName", e?.target?.value)}
+            error={errors?.firstName}
+            required
+          />
+
+          <Input
+            label="Last Name"
+            type="text"
+            placeholder="Enter your last name"
+            value={formData?.lastName}
+            onChange={(e) => handleInputChange("lastName", e?.target?.value)}
+            error={errors?.lastName}
+            required
+          />
+        </div>
+
+        <Input
+          label="Email Address"
+          type="email"
+          placeholder="Enter your email address"
+          value={formData?.email}
+          onChange={(e) => handleInputChange("email", e?.target?.value)}
+          error={errors?.email}
+          description="We'll use this for account verification and important updates"
+          required
+        />
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Input
+              label="Password"
+              type={showPassword ? "text" : "password"}
+              placeholder="Create a strong password"
+              value={formData?.password}
+              onChange={(e) => handleInputChange("password", e?.target?.value)}
+              error={errors?.password}
+              required
+            />
+
+            {formData?.password && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">
+                    Password strength:
+                  </span>
+                  <span
+                    className={`font-medium ${
+                      passwordStrength < 50
+                        ? "text-error"
+                        : passwordStrength < 75
+                        ? "text-warning"
+                        : "text-success"
+                    }`}
+                  >
+                    {getPasswordStrengthText()}
+                  </span>
+                </div>
+                <div className="w-full bg-muted rounded-full h-2">
+                  <div
+                    className={`h-2 rounded-full transition-all duration-300 ${getPasswordStrengthColor()}`}
+                    style={{ width: `${passwordStrength}%` }}
+                  />
+                </div>
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="text-sm text-primary hover:text-primary/80 transition-colors"
+            >
+              {showPassword ? "Hide password" : "Show password"}
+            </button>
+          </div>
+
+          <div className="space-y-2">
+            <Input
+              label="Confirm Password"
+              type={showConfirmPassword ? "text" : "password"}
+              placeholder="Confirm your password"
+              value={formData?.confirmPassword}
+              onChange={(e) =>
+                handleInputChange("confirmPassword", e?.target?.value)
+              }
+              error={errors?.confirmPassword}
+              required
+            />
+
+            <button
+              type="button"
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              className="text-sm text-primary hover:text-primary/80 transition-colors"
+            >
+              {showConfirmPassword ? "Hide password" : "Show password"}
+            </button>
+          </div>
+        </div>
+      </div>
+      {/* Health & Fitness Profile Section */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-heading font-semibold text-foreground flex items-center">
+          <Icon name="Activity" size={20} className="mr-2 text-primary" />
+          Health & Fitness Profile
+        </h3>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Select
+            label="Age Range"
+            placeholder="Select your age range"
+            options={ageRangeOptions}
+            value={formData?.ageRange}
+            onChange={(value) => handleInputChange("ageRange", value)}
+            error={errors?.ageRange}
+            required
+          />
+
+          <Select
+            label="Activity Level"
+            placeholder="Select your activity level"
+            options={activityLevelOptions}
+            value={formData?.activityLevel}
+            onChange={(value) => handleInputChange("activityLevel", value)}
+            error={errors?.activityLevel}
+            description="This helps us calculate your daily calorie needs"
+            required
+          />
+        </div>
+
+        <Select
+          label="Primary Nutrition Goal"
+          placeholder="What's your main nutrition goal?"
+          options={primaryGoalOptions}
+          value={formData?.primaryGoal}
+          onChange={(value) => handleInputChange("primaryGoal", value)}
+          error={errors?.primaryGoal}
+          required
+        />
+      </div>
+      {/* Preferences Section */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-heading font-semibold text-foreground flex items-center">
+          <Icon name="Settings" size={20} className="mr-2 text-primary" />
+          Preferences
+        </h3>
+
+        <Select
+          label="Dietary Restrictions"
+          placeholder="Select any dietary restrictions"
+          options={dietaryRestrictionOptions}
+          value={formData?.dietaryRestrictions}
+          onChange={(value) => handleInputChange("dietaryRestrictions", value)}
+          multiple
+          searchable
+          description="Select all that apply to personalize your meal recommendations"
+        />
+
+        <Select
+          label="Cooking Experience"
+          placeholder="How would you rate your cooking skills?"
+          options={cookingExperienceOptions}
+          value={formData?.cookingExperience}
+          onChange={(value) => handleInputChange("cookingExperience", value)}
+          error={errors?.cookingExperience}
+          description="This helps us suggest appropriate recipes and cooking games"
+          required
+        />
+
+        <div className="space-y-3">
+          <Checkbox
+            label="I'm interested in premium subscription features"
+            description="Get personalized meal plans, advanced analytics, and exclusive recipes"
+            checked={formData?.subscriptionInterest}
+            onChange={(e) =>
+              handleInputChange("subscriptionInterest", e?.target?.checked)
+            }
+          />
+        </div>
+      </div>
+      {/* Terms and Privacy Section */}
+      <div className="space-y-4 pt-4 border-t border-border">
+        <div className="space-y-3">
+          <Checkbox
+            label={
+              <span>
+                I agree to the{" "}
+                <Link
+                  to="/terms"
+                  className="text-primary hover:text-primary/80 underline"
+                >
+                  Terms of Service
+                </Link>
+              </span>
+            }
+            checked={formData?.agreeToTerms}
+            onChange={(e) =>
+              handleInputChange("agreeToTerms", e?.target?.checked)
+            }
+            error={errors?.agreeToTerms}
+            required
+          />
+
+          <Checkbox
+            label={
+              <span>
+                I agree to the{" "}
+                <Link
+                  to="/privacy"
+                  className="text-primary hover:text-primary/80 underline"
+                >
+                  Privacy Policy
+                </Link>
+              </span>
+            }
+            checked={formData?.agreeToPrivacy}
+            onChange={(e) =>
+              handleInputChange("agreeToPrivacy", e?.target?.checked)
+            }
+            error={errors?.agreeToPrivacy}
+            required
+          />
+        </div>
+      </div>
+      {/* Submit Button */}
+      <div className="pt-4">
+        <Button
+          type="submit"
+          variant="default"
+          size="lg"
+          fullWidth
+          disabled={isLoading || parentLoading}
+          iconName={isLoading || parentLoading ? undefined : "UserPlus"}
+          iconPosition="left"
+        >
+          {isLoading || parentLoading ? (
+            <span className="flex items-center justify-center w-full">
+              <svg
+                className="animate-spin h-5 w-5 mr-2 text-primary"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8v8z"
+                ></path>
+              </svg>
+              Registering...
+            </span>
+          ) : (
+            "Create Account"
+          )}
+        </Button>
+      </div>
+    </motion.form>
+  );
 };
 
 export default RegistrationForm;

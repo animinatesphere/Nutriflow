@@ -3,8 +3,15 @@ import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import Icon from '../../../components/AppIcon';
 
-const SubscriptionStatus = ({ subscriptionData }) => {
-  const { tier, status, expiryDate, features, usage } = subscriptionData;
+const SubscriptionStatus = ({ subscriptionData = {} }) => {
+  // Provide default values to avoid destructuring errors
+  const {
+    tier = 'Free',
+    status = 'inactive',
+    expiryDate = null,
+    features = [],
+    usage = []
+  } = subscriptionData || {};
   const isPremium = tier === 'Premium';
   const isActive = status === 'active';
   
