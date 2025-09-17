@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import Header from '../../components/ui/Header';
 import WeeklyCalendar from './components/WeeklyCalendar';
 import RecipeBrowser from './components/RecipeBrowser';
+import MealPlanningContainer from './components/MealPlanningContainer';
 import NutritionSummary from './components/NutritionSummary';
 import ShoppingList from './components/ShoppingList';
 import MealSuggestions from './components/MealSuggestions';
@@ -190,10 +191,7 @@ const MealPlanningPage = () => {
         );
       case 'recipes':
         return (
-          <RecipeBrowser
-            onRecipeSelect={handleRecipeSelect}
-            onAddToMeal={handleAddToMeal}
-          />
+          <MealPlanningContainer onAddToMeal={handleAddToMeal} />
         );
       case 'nutrition':
         return (
