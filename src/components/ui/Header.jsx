@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import Icon from '../AppIcon';
-import Button from './Button';
+import React, { useState, useEffect, useRef } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { supabase } from "../../utils/supabaseClient";
+import Icon from "../AppIcon";
+import Button from "./Button";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -12,55 +13,179 @@ const Header = () => {
 
   const navigationItems = [
     {
-      label: 'Dashboard',
-      path: '/user-dashboard',
-      icon: 'BarChart3',
-      tooltip: 'View your nutrition progress and daily overview'
+      label: "Dashboard",
+      path: "/user-dashboard",
+      icon: "BarChart3",
+      tooltip: "View your nutrition progress and daily overview",
     },
     {
-      label: 'Meal Planning',
-      path: '/meal-planning',
-      icon: 'Calendar',
-      tooltip: 'Plan your weekly meals and discover recipes'
+      label: "Meal Planning",
+      path: "/meal-planning",
+      icon: "Calendar",
+      tooltip: "Plan your weekly meals and discover recipes",
     },
     {
-      label: 'Cooking Games',
-      path: '/cooking-games',
-      icon: 'Gamepad2',
-      tooltip: 'Interactive cooking challenges and skill building'
-    }
+      label: "Cooking Games",
+      path: "/cooking-games",
+      icon: "Gamepad2",
+      tooltip: "Interactive cooking challenges and skill building",
+    },
   ];
 
   const [userProfile, setUserProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchProfile = async () => {
-      // Get user from localStorage or Supabase Auth
-      const userData = JSON.parse(localStorage.getItem('nutriflow_user'));
-      const userId = userData?.id || userData?.user?.id;
-      if (!userId) return;
-      // Fetch profile from Supabase
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-      if (!error && data) {
-        setUserProfile({
-          name: `${data.first_name || ''} ${data.last_name || ''}`.trim(),
-          email: data.email,
-          avatar: data.avatar_url || '/assets/images/avatar-placeholder.jpg',
-          subscriptionTier: data.subscription_tier || 'Free',
-          dailyProgress: data.daily_progress || 0
-        });
+  const fetchUserProfile = async () => {
+    try {
+      setLoading(true);
+
+      // First, try to get the current user from Supabase Auth
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser();
+      console.log("Header.jsx Supabase Auth User:", user);
+      console.log("Header.jsx Supabase Auth Error:", authError);
+
+      let userId = null;
+      let userEmail = null;
+
+      if (user) {
+        // User is authenticated with Supabase
+        userId = user.id;
+        userEmail = user.email;
+        console.log(
+          "Header.jsx User from Supabase Auth - ID:",
+          userId,
+          "Email:",
+          userEmail
+        );
+      } else {
+        // Fallback to localStorage
+        let userData = JSON.parse(
+          localStorage.getItem("nutriflow_user") || "null"
+        );
+        console.log("Header.jsx localStorage userData:", userData);
+
+        if (userData) {
+          if (Array.isArray(userData)) userData = userData[0];
+
+          // Try different possible paths for user ID
+          userId = userData?.user?.id || userData?.id || userData?.user_id;
+          userEmail =
+            userData?.email ||
+            userData?.user_metadata?.email ||
+            userData?.user?.email;
+
+          console.log(
+            "Header.jsx User from localStorage - ID:",
+            userId,
+            "Email:",
+            userEmail
+          );
+        }
       }
-    };
-    fetchProfile();
-  }, []);
+
+      if (!userId) {
+        console.warn("Header.jsx: No user ID found, redirecting to login");
+        navigate("/user-login");
+        return;
+      }
+
+      // Fetch profile from Supabase
+      console.log("Header.jsx: Fetching profile for user ID:", userId);
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", userId)
+        .single();
+
+      console.log("Header.jsx Supabase profile data:", data);
+      console.log("Header.jsx Supabase profile error:", error);
+
+      let profile = null;
+
+      if (data && !error) {
+        let name = `${data.first_name || ""} ${data.last_name || ""}`.trim();
+        if (!name) name = data.email || userEmail || "User";
+
+        profile = {
+          name,
+          email: data.email || userEmail,
+          avatar: data.avatar_url || "/assets/images/avatar-placeholder.jpg",
+          subscriptionTier: data.subscription_tier || "Free",
+          dailyProgress: data.daily_progress || 0,
+          ageRange: data.age_range || "",
+          activityLevel: data.activity_level || "",
+          primaryGoal: data.primary_goal || "",
+          dietaryRestrictions: data.dietary_restrictions || "",
+          cookingExperience: data.cooking_experience || "",
+          subscriptionInterest: data.subscription_interest || "",
+        };
+      } else {
+        // Profile not found or error occurred
+        console.warn("Header.jsx: Profile not found, using fallback");
+        profile = {
+          name: userEmail || "User",
+          email: userEmail || "No email",
+          avatar: "/assets/images/avatar-placeholder.jpg",
+          subscriptionTier: "Free",
+          dailyProgress: 0,
+        };
+
+        // If error is not just "no rows returned", log it
+        if (error && error.code !== "PGRST116") {
+          console.error("Header.jsx: Error fetching profile:", error);
+        }
+      }
+
+      setUserProfile(profile);
+    } catch (err) {
+      console.error("Header.jsx: Error in fetchProfile:", err);
+      // Set a minimal fallback profile
+      setUserProfile({
+        name: "User",
+        email: "No email",
+        avatar: "/assets/images/avatar-placeholder.jpg",
+        subscriptionTier: "Free",
+        dailyProgress: 0,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch user profile on component mount
+  useEffect(() => {
+    fetchUserProfile();
+  }, [navigate]);
+
+  // Also listen for auth state changes (but avoid unnecessary reloads)
+  useEffect(() => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("Header.jsx Auth state changed:", event, session?.user?.id);
+      if (event === "SIGNED_OUT") {
+        setUserProfile(null);
+        localStorage.removeItem("nutriflow_user");
+        navigate("/user-login");
+      } else if (event === "SIGNED_IN" && session?.user && !userProfile) {
+        // Only refetch if we don't have user profile yet (avoid reload loop)
+        fetchUserProfile();
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate, userProfile]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (profileRef?.current && !profileRef?.current?.contains(event?.target)) {
+      if (
+        profileRef?.current &&
+        !profileRef?.current?.contains(event?.target)
+      ) {
         setIsProfileOpen(false);
       }
       if (menuRef?.current && !menuRef?.current?.contains(event?.target)) {
@@ -68,8 +193,8 @@ const Header = () => {
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const isActivePath = (path) => location?.pathname === path;
@@ -77,20 +202,52 @@ const Header = () => {
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
   const toggleProfile = () => setIsProfileOpen(!isProfileOpen);
 
-  const handleLogout = () => {
-    // Logout logic here
-    console.log('Logging out...');
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      localStorage.removeItem("nutriflow_user");
+      setUserProfile(null);
+      navigate("/user-login");
+    } catch (error) {
+      console.error("Header.jsx: Error during logout:", error);
+    }
   };
+
+  // Show loading state
+  if (loading) {
+    return (
+      <header className="fixed top-0 left-0 right-0 z-50 bg-card border-b border-border shadow-soft">
+        <div className="flex items-center justify-between h-16 px-6">
+          <div className="flex items-center space-x-2">
+            <div className="flex items-center justify-center w-8 h-8 bg-primary rounded-lg">
+              <Icon name="Utensils" size={20} color="white" />
+            </div>
+            <span className="text-xl font-heading font-bold text-foreground">
+              NutriFlow
+            </span>
+          </div>
+          <div className="flex items-center space-x-4">
+            <div className="w-8 h-8 bg-muted rounded-full animate-pulse"></div>
+          </div>
+        </div>
+      </header>
+    );
+  }
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-card border-b border-border shadow-soft">
       <div className="flex items-center justify-between h-16 px-6">
         {/* Logo */}
-        <Link to="/user-dashboard" className="flex items-center space-x-2 hover:opacity-80 transition-opacity">
+        <Link
+          to="/user-dashboard"
+          className="flex items-center space-x-2 hover:opacity-80 transition-opacity"
+        >
           <div className="flex items-center justify-center w-8 h-8 bg-primary rounded-lg">
             <Icon name="Utensils" size={20} color="white" />
           </div>
-          <span className="text-xl font-heading font-bold text-foreground">NutriFlow</span>
+          <span className="text-xl font-heading font-bold text-foreground">
+            NutriFlow
+          </span>
         </Link>
 
         {/* Desktop Navigation */}
@@ -101,15 +258,15 @@ const Header = () => {
               to={item?.path}
               className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-200 group relative ${
                 isActivePath(item?.path)
-                  ? 'bg-primary text-primary-foreground shadow-soft'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                  ? "bg-primary text-primary-foreground shadow-soft"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
               }`}
               title={item?.tooltip}
             >
-              <Icon 
-                name={item?.icon} 
-                size={18} 
-                color={isActivePath(item?.path) ? 'white' : 'currentColor'} 
+              <Icon
+                name={item?.icon}
+                size={18}
+                color={isActivePath(item?.path) ? "white" : "currentColor"}
               />
               <span className="font-body font-medium">{item?.label}</span>
               {isActivePath(item?.path) && (
@@ -125,7 +282,7 @@ const Header = () => {
           <div className="hidden lg:flex items-center space-x-2 px-3 py-1 bg-muted rounded-full">
             <div className="w-2 h-2 bg-success rounded-full animate-pulse" />
             <span className="text-sm font-caption text-muted-foreground">
-              {userProfile?.dailyProgress}% daily goal
+              {userProfile?.dailyProgress || 0}% daily goal
             </span>
           </div>
 
@@ -133,7 +290,7 @@ const Header = () => {
           <div className="hidden md:flex items-center px-2 py-1 bg-gradient-to-r from-accent/20 to-primary/20 rounded-full border border-accent/30">
             <Icon name="Crown" size={14} color="var(--color-accent)" />
             <span className="ml-1 text-xs font-caption font-medium text-accent-foreground">
-              {userProfile?.subscriptionTier}
+              {userProfile?.subscriptionTier || "Free"}
             </span>
           </div>
 
@@ -145,7 +302,10 @@ const Header = () => {
             >
               <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
                 <span className="text-sm font-heading font-semibold text-primary-foreground">
-                  {userProfile?.name?.split(' ')?.map(n => n?.[0])?.join('')}
+                  {userProfile?.name
+                    ?.split(" ")
+                    ?.map((n) => n?.[0])
+                    ?.join("") || "U"}
                 </span>
               </div>
               <Icon name="ChevronDown" size={16} color="currentColor" />
@@ -157,31 +317,53 @@ const Header = () => {
                   <div className="flex items-center space-x-3">
                     <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
                       <span className="text-sm font-heading font-semibold text-primary-foreground">
-                        {userProfile?.name?.split(' ')?.map(n => n?.[0])?.join('')}
+                        {userProfile?.name
+                          ?.split(" ")
+                          ?.map((n) => n?.[0])
+                          ?.join("") || "U"}
                       </span>
                     </div>
                     <div>
-                      <p className="font-body font-medium text-popover-foreground">{userProfile?.name}</p>
-                      <p className="text-sm text-muted-foreground">{userProfile?.email}</p>
+                      <p className="font-body font-medium text-popover-foreground">
+                        {userProfile?.name || "User"}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {userProfile?.email || "No email"}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {userProfile?.subscriptionTier || "Free"} Plan
+                      </p>
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="p-2">
-                  <button className="w-full flex items-center space-x-3 px-3 py-2 text-left hover:bg-muted rounded-md transition-colors">
+                  <button
+                    onClick={() => {
+                      setIsProfileOpen(false);
+                      navigate("/profile-settings");
+                    }}
+                    className="w-full flex items-center space-x-3 px-3 py-2 text-left hover:bg-muted rounded-md transition-colors"
+                  >
                     <Icon name="User" size={16} color="currentColor" />
-                    <span className="font-body text-popover-foreground">Profile Settings</span>
+                    <span className="font-body text-popover-foreground">
+                      Profile Settings
+                    </span>
                   </button>
                   <button className="w-full flex items-center space-x-3 px-3 py-2 text-left hover:bg-muted rounded-md transition-colors">
                     <Icon name="Settings" size={16} color="currentColor" />
-                    <span className="font-body text-popover-foreground">Preferences</span>
+                    <span className="font-body text-popover-foreground">
+                      Preferences
+                    </span>
                   </button>
                   <button className="w-full flex items-center space-x-3 px-3 py-2 text-left hover:bg-muted rounded-md transition-colors">
                     <Icon name="HelpCircle" size={16} color="currentColor" />
-                    <span className="font-body text-popover-foreground">Help & Support</span>
+                    <span className="font-body text-popover-foreground">
+                      Help & Support
+                    </span>
                   </button>
                   <div className="border-t border-border my-2" />
-                  <button 
+                  <button
                     onClick={handleLogout}
                     className="w-full flex items-center space-x-3 px-3 py-2 text-left hover:bg-destructive/10 text-destructive rounded-md transition-colors"
                   >
@@ -198,13 +380,21 @@ const Header = () => {
             onClick={toggleMenu}
             className="md:hidden p-2 rounded-lg hover:bg-muted transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
           >
-            <Icon name={isMenuOpen ? "X" : "Menu"} size={20} color="currentColor" />
+            <Icon
+              name={isMenuOpen ? "X" : "Menu"}
+              size={20}
+              color="currentColor"
+            />
           </button>
         </div>
       </div>
+
       {/* Mobile Menu */}
       {isMenuOpen && (
-        <div className="md:hidden bg-card border-t border-border animate-slide-down" ref={menuRef}>
+        <div
+          className="md:hidden bg-card border-t border-border animate-slide-down"
+          ref={menuRef}
+        >
           <nav className="p-4 space-y-2">
             {navigationItems?.map((item) => (
               <Link
@@ -213,14 +403,14 @@ const Header = () => {
                 onClick={() => setIsMenuOpen(false)}
                 className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 ${
                   isActivePath(item?.path)
-                    ? 'bg-primary text-primary-foreground shadow-soft'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                    ? "bg-primary text-primary-foreground shadow-soft"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
                 }`}
               >
-                <Icon 
-                  name={item?.icon} 
-                  size={20} 
-                  color={isActivePath(item?.path) ? 'white' : 'currentColor'} 
+                <Icon
+                  name={item?.icon}
+                  size={20}
+                  color={isActivePath(item?.path) ? "white" : "currentColor"}
                 />
                 <div>
                   <span className="font-body font-medium">{item?.label}</span>
@@ -228,17 +418,21 @@ const Header = () => {
                 </div>
               </Link>
             ))}
-            
+
             <div className="border-t border-border pt-4 mt-4">
               <div className="flex items-center justify-between px-4 py-2">
-                <span className="text-sm font-caption text-muted-foreground">Daily Progress</span>
-                <span className="text-sm font-mono font-medium text-success">{userProfile?.dailyProgress}%</span>
+                <span className="text-sm font-caption text-muted-foreground">
+                  Daily Progress
+                </span>
+                <span className="text-sm font-mono font-medium text-success">
+                  {userProfile?.dailyProgress || 0}%
+                </span>
               </div>
               <div className="px-4">
                 <div className="w-full bg-muted rounded-full h-2">
-                  <div 
+                  <div
                     className="bg-success h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${userProfile?.dailyProgress}%` }}
+                    style={{ width: `${userProfile?.dailyProgress || 0}%` }}
                   />
                 </div>
               </div>

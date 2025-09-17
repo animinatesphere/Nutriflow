@@ -10,6 +10,7 @@ import UserDashboard from "./pages/user-dashboard";
 import UserRegistration from "./pages/user-registration";
 import CookingGames from "./pages/cooking-games";
 import AdminGames from "pages/admin/games";
+import ProfileSettings from "components/ui/ProfileSettings";
 
 const Routes = () => {
   return (
@@ -26,6 +27,7 @@ const Routes = () => {
           <Route path="/user-registration" element={<UserRegistration />} />
           <Route path="/cooking-games" element={<CookingGames />} />
           <Route path="/admin" element={<AdminGames />} />
+          <Route path="/profile-settings" element={<ProfileSettings />} />
           <Route path="*" element={<NotFound />} />
         </RouterRoutes>
       </ErrorBoundary>
