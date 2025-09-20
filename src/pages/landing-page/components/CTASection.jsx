@@ -1,10 +1,10 @@
-import React from 'react';
-import { motion } from 'framer-motion';
-import { useInView } from 'framer-motion';
-import { useRef } from 'react';
-import { Link } from 'react-router-dom';
-import Button from '../../../components/ui/Button';
-import Icon from '../../../components/AppIcon';
+import React from "react";
+import { motion } from "framer-motion";
+import { useInView } from "framer-motion";
+import { useRef } from "react";
+import { Link } from "react-router-dom";
+import Button from "../../../components/ui/Button";
+import Icon from "../../../components/AppIcon";
 
 const CTASection = () => {
   const ref = useRef(null);
@@ -17,11 +17,14 @@ const CTASection = () => {
     { icon: "Apple", x: 90, y: 75, delay: 0.8 },
     { icon: "Cookie", x: 50, y: 5, delay: 1.0 },
     { icon: "Carrot", x: 5, y: 50, delay: 1.2 },
-    { icon: "Fish", x: 95, y: 45, delay: 1.4 }
+    { icon: "Fish", x: 95, y: 45, delay: 1.4 },
   ];
 
   return (
-    <section ref={ref} className="relative py-20 bg-gradient-to-br from-orange-600 via-amber-600 to-yellow-500 overflow-hidden">
+    <section
+      ref={ref}
+      className="relative py-20 bg-gradient-to-br from-orange-600 via-amber-600 to-yellow-500 overflow-hidden"
+    >
       {/* Animated Background Elements */}
       <div className="absolute inset-0">
         {cookingElements?.map((element, index) => (
@@ -33,27 +36,31 @@ const CTASection = () => {
               top: `${element?.y}%`,
             }}
             initial={{ opacity: 0, scale: 0, rotate: -180 }}
-            animate={isInView ? { 
-              opacity: 0.3, 
-              scale: 1, 
-              rotate: 0,
-              y: [0, -30, 0],
-              x: [0, 15, 0]
-            } : {}}
+            animate={
+              isInView
+                ? {
+                    opacity: 0.3,
+                    scale: 1,
+                    rotate: 0,
+                    y: [0, -30, 0],
+                    x: [0, 15, 0],
+                  }
+                : {}
+            }
             transition={{
               delay: element?.delay,
               duration: 0.8,
               y: {
                 duration: 4,
                 repeat: Infinity,
-                ease: "easeInOut"
+                ease: "easeInOut",
               },
               x: {
                 duration: 6,
                 repeat: Infinity,
                 ease: "easeInOut",
-                delay: 1
-              }
+                delay: 1,
+              },
             }}
           >
             <Icon name={element?.icon} size={60} color="currentColor" />
@@ -67,12 +74,12 @@ const CTASection = () => {
             scale: [1, 1.5, 1],
             opacity: [0.2, 0.5, 0.2],
             y: [0, -50, 0],
-            rotate: [0, 10, -10, 0]
+            rotate: [0, 10, -10, 0],
           }}
           transition={{
             duration: 6,
             repeat: Infinity,
-            ease: "easeInOut"
+            ease: "easeInOut",
           }}
         >
           <div className="w-40 h-40 bg-gradient-to-t from-white/30 to-transparent rounded-full blur-2xl" />
@@ -84,13 +91,13 @@ const CTASection = () => {
             scale: [1, 1.8, 1],
             opacity: [0.15, 0.4, 0.15],
             y: [0, -60, 0],
-            rotate: [0, -15, 15, 0]
+            rotate: [0, -15, 15, 0],
           }}
           transition={{
             duration: 8,
             repeat: Infinity,
             ease: "easeInOut",
-            delay: 2
+            delay: 2,
           }}
         >
           <div className="w-32 h-32 bg-gradient-to-t from-white/40 to-transparent rounded-full blur-xl" />
@@ -102,42 +109,47 @@ const CTASection = () => {
           animate={isInView ? { opacity: 1, y: 0, scale: 1 } : {}}
           transition={{ duration: 0.8, ease: "easeOut" }}
         >
-          <motion.div 
+          <motion.div
             className="inline-flex items-center px-6 py-3 bg-white/20 backdrop-blur-sm rounded-full mb-8 border border-white/30"
-            whileHover={{ scale: 1.05, backgroundColor: "rgba(255,255,255,0.3)" }}
+            whileHover={{
+              scale: 1.05,
+              backgroundColor: "rgba(255,255,255,0.3)",
+            }}
             transition={{ duration: 0.3 }}
           >
             <motion.div
-              animate={{ 
+              animate={{
                 rotate: [0, 360],
-                scale: [1, 1.2, 1]
+                scale: [1, 1.2, 1],
               }}
-              transition={{ 
-                duration: 3, 
-                repeat: Infinity, 
-                ease: "easeInOut" 
+              transition={{
+                duration: 3,
+                repeat: Infinity,
+                ease: "easeInOut",
               }}
             >
               <Icon name="Zap" size={20} color="white" />
             </motion.div>
-            <span className="ml-3 text-sm font-semibold text-white">Start Your Culinary Adventure</span>
+            <span className="ml-3 text-sm font-semibold text-white">
+              Start Your Culinary Adventure
+            </span>
           </motion.div>
 
           <motion.h2
-            className="text-5xl md:text-7xl font-heading font-bold text-white mb-8 leading-tight"
+            className="text-[26px] sm:text-[33px] md:text-[40px] lg:text-[50px] font-heading font-bold text-white mb-8 leading-tight"
             initial={{ opacity: 0, y: 30 }}
             animate={isInView ? { opacity: 1, y: 0 } : {}}
             transition={{ delay: 0.2, duration: 0.8 }}
           >
             Ready to Transform
-            <motion.span 
+            <motion.span
               className="block text-yellow-200"
               animate={{
                 textShadow: [
                   "0 0 20px rgba(255,255,255,0.5)",
-                  "0 0 30px rgba(255,255,255,0.8)", 
-                  "0 0 20px rgba(255,255,255,0.5)"
-                ]
+                  "0 0 30px rgba(255,255,255,0.8)",
+                  "0 0 20px rgba(255,255,255,0.5)",
+                ],
               }}
               transition={{ duration: 2, repeat: Infinity }}
             >
@@ -151,8 +163,9 @@ const CTASection = () => {
             animate={isInView ? { opacity: 1, y: 0 } : {}}
             transition={{ delay: 0.4, duration: 0.8 }}
           >
-            Join thousands of home chefs mastering cooking skills, planning healthy meals, 
-            and building lasting culinary habits. Your culinary journey starts here!
+            Join thousands of home chefs mastering cooking skills, planning
+            healthy meals, and building lasting culinary habits. Your culinary
+            journey starts here!
           </motion.p>
 
           <motion.div
@@ -177,7 +190,7 @@ const CTASection = () => {
                 </Button>
               </motion.div>
             </Link>
-            
+
             <Link to="/user-login">
               <motion.div
                 whileHover={{ scale: 1.05, y: -2 }}
@@ -202,45 +215,47 @@ const CTASection = () => {
             animate={isInView ? { opacity: 1, y: 0 } : {}}
             transition={{ delay: 0.8, duration: 0.8 }}
           >
-            <motion.div 
+            <motion.div
               className="text-center"
               whileHover={{ y: -5 }}
               transition={{ duration: 0.3 }}
             >
               <motion.div
                 className="inline-flex items-center justify-center w-16 h-16 bg-white/20 backdrop-blur-sm rounded-full mb-4"
-                animate={{ 
+                animate={{
                   rotate: [0, 360],
-                  scale: [1, 1.1, 1]
+                  scale: [1, 1.1, 1],
                 }}
-                transition={{ 
-                  duration: 4, 
-                  repeat: Infinity, 
-                  ease: "easeInOut" 
+                transition={{
+                  duration: 4,
+                  repeat: Infinity,
+                  ease: "easeInOut",
                 }}
               >
                 <Icon name="Zap" size={28} color="white" />
               </motion.div>
-              <h3 className="text-xl font-bold text-white mb-2">Instant Setup</h3>
+              <h3 className="text-xl font-bold text-white mb-2">
+                Instant Setup
+              </h3>
               <p className="text-white/80">Start cooking in under 2 minutes</p>
             </motion.div>
-            
-            <motion.div 
+
+            <motion.div
               className="text-center"
               whileHover={{ y: -5 }}
               transition={{ duration: 0.3 }}
             >
               <motion.div
                 className="inline-flex items-center justify-center w-16 h-16 bg-white/20 backdrop-blur-sm rounded-full mb-4"
-                animate={{ 
+                animate={{
                   scale: [1, 1.2, 1],
-                  rotate: [0, -10, 10, 0]
+                  rotate: [0, -10, 10, 0],
                 }}
-                transition={{ 
-                  duration: 3, 
-                  repeat: Infinity, 
+                transition={{
+                  duration: 3,
+                  repeat: Infinity,
                   ease: "easeInOut",
-                  delay: 0.5 
+                  delay: 0.5,
                 }}
               >
                 <Icon name="Shield" size={28} color="white" />
@@ -248,28 +263,30 @@ const CTASection = () => {
               <h3 className="text-xl font-bold text-white mb-2">Free Trial</h3>
               <p className="text-white/80">No credit card required</p>
             </motion.div>
-            
-            <motion.div 
+
+            <motion.div
               className="text-center"
               whileHover={{ y: -5 }}
               transition={{ duration: 0.3 }}
             >
               <motion.div
                 className="inline-flex items-center justify-center w-16 h-16 bg-white/20 backdrop-blur-sm rounded-full mb-4"
-                animate={{ 
+                animate={{
                   y: [0, -8, 0],
-                  scale: [1, 1.15, 1]
+                  scale: [1, 1.15, 1],
                 }}
-                transition={{ 
-                  duration: 2.5, 
-                  repeat: Infinity, 
+                transition={{
+                  duration: 2.5,
+                  repeat: Infinity,
                   ease: "easeInOut",
-                  delay: 1 
+                  delay: 1,
                 }}
               >
                 <Icon name="Heart" size={28} color="white" />
               </motion.div>
-              <h3 className="text-xl font-bold text-white mb-2">Expert Support</h3>
+              <h3 className="text-xl font-bold text-white mb-2">
+                Expert Support
+              </h3>
               <p className="text-white/80">Culinary guidance every step</p>
             </motion.div>
           </motion.div>

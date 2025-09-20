@@ -1,14 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Link, useNavigate } from 'react-router-dom';
-import { Helmet } from 'react-helmet';
-import Icon from '../../components/AppIcon';
-import Image from '../../components/AppImage';
-import Button from '../../components/ui/Button';
-import RegistrationForm from './components/RegistrationForm';
-import SocialRegistration from './components/SocialRegistration';
-import ProgressIndicator from './components/ProgressIndicator';
-import SuccessMessage from './components/SuccessMessage';
+import React, { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import { Link, useNavigate } from "react-router-dom";
+import { Helmet } from "react-helmet";
+import Icon from "../../components/AppIcon";
+import Image from "../../components/AppImage";
+import Button from "../../components/ui/Button";
+import RegistrationForm from "./components/RegistrationForm";
+import SocialRegistration from "./components/SocialRegistration";
+import ProgressIndicator from "./components/ProgressIndicator";
+import SuccessMessage from "./components/SuccessMessage";
 
 const UserRegistration = () => {
   const navigate = useNavigate();
@@ -16,46 +16,46 @@ const UserRegistration = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const [registrationComplete, setRegistrationComplete] = useState(false);
-  const [userEmail, setUserEmail] = useState('');
+  const [userEmail, setUserEmail] = useState("");
 
   const registrationSteps = [
     {
-      id: 'account',
-      label: 'Account',
-      title: 'Create Your Account',
-      subtitle: 'Join thousands of users on their nutrition journey',
-      description: 'Basic info'
+      id: "account",
+      label: "Account",
+      title: "Create Your Account",
+      subtitle: "Join thousands of users on their nutrition journey",
+      description: "Basic info",
     },
     {
-      id: 'verification',
-      label: 'Verify',
-      title: 'Verify Your Email',
-      subtitle: 'Check your inbox for the verification link',
-      description: 'Email check'
+      id: "verification",
+      label: "Verify",
+      title: "Verify Your Email",
+      subtitle: "Check your inbox for the verification link",
+      description: "Email check",
     },
     {
-      id: 'complete',
-      label: 'Complete',
-      title: 'Welcome to NutriFlow!',
-      subtitle: 'Your account is ready to use',
-      description: 'All done'
-    }
+      id: "complete",
+      label: "Complete",
+      title: "Welcome to NutriFlow!",
+      subtitle: "Your account is ready to use",
+      description: "All done",
+    },
   ];
 
   // Mock credentials for testing
   const mockCredentials = {
     testUser: {
-      email: 'test@nutriflow.com',
-      password: 'TestUser123!',
-      firstName: 'John',
-      lastName: 'Doe'
+      email: "test@nutriflow.com",
+      password: "TestUser123!",
+      firstName: "John",
+      lastName: "Doe",
     },
     premiumUser: {
-      email: 'premium@nutriflow.com',
-      password: 'Premium123!',
-      firstName: 'Sarah',
-      lastName: 'Johnson'
-    }
+      email: "premium@nutriflow.com",
+      password: "Premium123!",
+      firstName: "Sarah",
+      lastName: "Johnson",
+    },
   };
 
   useEffect(() => {
@@ -67,16 +67,17 @@ const UserRegistration = () => {
     setIsLoading(true);
     try {
       // 1. Register user with Supabase Auth
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password
-      });
+      const { data: signUpData, error: signUpError } =
+        await supabase.auth.signUp({
+          email: formData.email,
+          password: formData.password,
+        });
       if (signUpError) throw signUpError;
 
       // 2. Insert profile data into profiles table
       const userId = signUpData?.user?.id || signUpData?.user?.id;
       if (userId) {
-        const { error: profileError } = await supabase.from('profiles').insert({
+        const { error: profileError } = await supabase.from("profiles").insert({
           id: userId,
           email: formData.email,
           first_name: formData.firstName,
@@ -86,7 +87,7 @@ const UserRegistration = () => {
           primary_goal: formData.primaryGoal,
           dietary_restrictions: formData.dietaryRestrictions,
           cooking_experience: formData.cookingExperience,
-          subscription_interest: formData.subscriptionInterest
+          subscription_interest: formData.subscriptionInterest,
         });
         if (profileError) throw profileError;
       }
@@ -94,39 +95,42 @@ const UserRegistration = () => {
       setUserEmail(formData?.email);
       setCurrentStep(2);
       setRegistrationComplete(true);
-      setTimeout(() => {/* ...existing code... */}, 1000);
+      setTimeout(() => {
+        /* ...existing code... */
+      }, 1000);
     } catch (error) {
-      console.error('Registration failed:', error);
+      console.error("Registration failed:", error);
       // Handle registration error
     } finally {
       setIsLoading(false);
     }
   };
 
-    const handleSocialRegistration = async (provider) => {
-      setIsLoading(true);
-      try {
-        const { error } = await supabase.auth.signInWithOAuth({ provider: provider.id });
-        if (error) throw error;
-        // On success, Supabase will redirect to your configured redirect URL
-      } catch (error) {
-        console.error('Social registration failed:', error);
-        // Optionally show error to user
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  const handleSocialRegistration = async (provider) => {
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: provider.id,
+      });
+      if (error) throw error;
+      // On success, Supabase will redirect to your configured redirect URL
+    } catch (error) {
+      console.error("Social registration failed:", error);
+      // Optionally show error to user
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleResendVerification = async () => {
     setIsResending(true);
-    
+
     try {
       // Simulate resend verification email
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      console.log('Verification email resent to:', userEmail);
-      
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      console.log("Verification email resent to:", userEmail);
     } catch (error) {
-      console.error('Failed to resend verification:', error);
+      console.error("Failed to resend verification:", error);
     } finally {
       setIsResending(false);
     }
@@ -137,17 +141,17 @@ const UserRegistration = () => {
       case 1:
         return (
           <div className="space-y-8">
-            <SocialRegistration 
+            <SocialRegistration
               onSocialRegister={handleSocialRegistration}
               isLoading={isLoading}
             />
-            <RegistrationForm 
+            <RegistrationForm
               onSubmit={handleRegistrationSubmit}
               isLoading={isLoading}
             />
           </div>
         );
-      
+
       case 2:
         return (
           <motion.div
@@ -169,7 +173,8 @@ const UserRegistration = () => {
             </div>
             <div className="bg-muted rounded-lg p-4">
               <p className="text-sm text-muted-foreground mb-4">
-                Didn't receive the email? Check your spam folder or click below to resend.
+                Didn't receive the email? Check your spam folder or click below
+                to resend.
               </p>
               <Button
                 variant="outline"
@@ -183,7 +188,7 @@ const UserRegistration = () => {
             </div>
           </motion.div>
         );
-      
+
       case 3:
         return (
           <SuccessMessage
@@ -192,7 +197,7 @@ const UserRegistration = () => {
             isResending={isResending}
           />
         );
-      
+
       default:
         return null;
     }
@@ -202,10 +207,19 @@ const UserRegistration = () => {
     <>
       <Helmet>
         <title>Create Account - NutriFlow | Start Your Nutrition Journey</title>
-        <meta name="description" content="Join NutriFlow and start tracking your nutrition goals with personalized meal planning, cooking games, and expert guidance. Create your free account today." />
-        <meta name="keywords" content="nutrition tracking, meal planning, healthy eating, diet tracker, cooking games, fitness nutrition" />
+        <meta
+          name="description"
+          content="Join NutriFlow and start tracking your nutrition goals with personalized meal planning, cooking games, and expert guidance. Create your free account today."
+        />
+        <meta
+          name="keywords"
+          content="nutrition tracking, meal planning, healthy eating, diet tracker, cooking games, fitness nutrition"
+        />
         <meta property="og:title" content="Create Account - NutriFlow" />
-        <meta property="og:description" content="Start your nutrition journey with NutriFlow's comprehensive tracking and meal planning tools." />
+        <meta
+          property="og:description"
+          content="Start your nutrition journey with NutriFlow's comprehensive tracking and meal planning tools."
+        />
         <meta property="og:type" content="website" />
       </Helmet>
       <div className="min-h-screen bg-background">
@@ -217,11 +231,12 @@ const UserRegistration = () => {
                 <div className="flex items-center justify-center w-8 h-8 bg-primary rounded-lg">
                   <Icon name="Utensils" size={20} color="white" />
                 </div>
-                <span className="text-xl font-heading font-bold text-foreground">NutriFlow</span>
+                <span className="text-xl font-heading font-bold text-foreground">
+                  NutriFlow
+                </span>
               </Link>
-              
+
               <div className="flex items-center space-x-4">
-                <span className="text-sm text-muted-foreground">Already have an account?</span>
                 <Button variant="outline" size="sm" asChild>
                   <Link to="/user-login">Sign In</Link>
                 </Button>
@@ -263,29 +278,33 @@ const UserRegistration = () => {
                 <h3 className="text-lg font-heading font-semibold text-foreground">
                   What you'll get with NutriFlow:
                 </h3>
-                
+
                 <div className="space-y-3">
                   {[
                     {
-                      icon: 'Target',
-                      title: 'Personalized Goals',
-                      description: 'Custom nutrition targets based on your lifestyle and objectives'
+                      icon: "Target",
+                      title: "Personalized Goals",
+                      description:
+                        "Custom nutrition targets based on your lifestyle and objectives",
                     },
                     {
-                      icon: 'Calendar',
-                      title: 'Smart Meal Planning',
-                      description: 'AI-powered meal suggestions that fit your preferences and schedule'
+                      icon: "Calendar",
+                      title: "Smart Meal Planning",
+                      description:
+                        "AI-powered meal suggestions that fit your preferences and schedule",
                     },
                     {
-                      icon: 'Gamepad2',
-                      title: 'Interactive Cooking Games',
-                      description: 'Learn cooking skills through fun, engaging challenges'
+                      icon: "Gamepad2",
+                      title: "Interactive Cooking Games",
+                      description:
+                        "Learn cooking skills through fun, engaging challenges",
                     },
                     {
-                      icon: 'BarChart3',
-                      title: 'Progress Tracking',
-                      description: 'Detailed analytics and insights into your nutrition journey'
-                    }
+                      icon: "BarChart3",
+                      title: "Progress Tracking",
+                      description:
+                        "Detailed analytics and insights into your nutrition journey",
+                    },
                   ]?.map((feature, index) => (
                     <motion.div
                       key={index}
@@ -295,7 +314,11 @@ const UserRegistration = () => {
                       transition={{ duration: 0.3, delay: index * 0.1 }}
                     >
                       <div className="flex-shrink-0 w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
-                        <Icon name={feature?.icon} size={16} className="text-primary" />
+                        <Icon
+                          name={feature?.icon}
+                          size={16}
+                          className="text-primary"
+                        />
                       </div>
                       <div>
                         <h4 className="font-body font-medium text-foreground">
@@ -314,18 +337,30 @@ const UserRegistration = () => {
               <div className="bg-muted rounded-lg p-6">
                 <div className="flex items-center justify-center space-x-6">
                   <div className="text-center">
-                    <div className="text-2xl font-heading font-bold text-foreground">50K+</div>
-                    <div className="text-sm text-muted-foreground">Active Users</div>
+                    <div className="text-2xl font-heading font-bold text-foreground">
+                      50K+
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      Active Users
+                    </div>
                   </div>
                   <div className="w-px h-8 bg-border" />
                   <div className="text-center">
-                    <div className="text-2xl font-heading font-bold text-foreground">4.8★</div>
-                    <div className="text-sm text-muted-foreground">User Rating</div>
+                    <div className="text-2xl font-heading font-bold text-foreground">
+                      4.8★
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      User Rating
+                    </div>
                   </div>
                   <div className="w-px h-8 bg-border" />
                   <div className="text-center">
-                    <div className="text-2xl font-heading font-bold text-foreground">1M+</div>
-                    <div className="text-sm text-muted-foreground">Meals Tracked</div>
+                    <div className="text-2xl font-heading font-bold text-foreground">
+                      1M+
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      Meals Tracked
+                    </div>
                   </div>
                 </div>
               </div>
@@ -345,7 +380,7 @@ const UserRegistration = () => {
                   steps={registrationSteps}
                 />
               )}
-              
+
               {renderStepContent()}
             </motion.div>
           </div>
@@ -361,20 +396,29 @@ const UserRegistration = () => {
                   Your data is protected with enterprise-grade security
                 </span>
               </div>
-              
+
               <div className="flex items-center space-x-6 text-sm text-muted-foreground">
-                <Link to="/privacy" className="hover:text-foreground transition-colors">
+                <Link
+                  to="/privacy"
+                  className="hover:text-foreground transition-colors"
+                >
                   Privacy Policy
                 </Link>
-                <Link to="/terms" className="hover:text-foreground transition-colors">
+                <Link
+                  to="/terms"
+                  className="hover:text-foreground transition-colors"
+                >
                   Terms of Service
                 </Link>
-                <Link to="/help" className="hover:text-foreground transition-colors">
+                <Link
+                  to="/help"
+                  className="hover:text-foreground transition-colors"
+                >
                   Help Center
                 </Link>
               </div>
             </div>
-            
+
             <div className="text-center mt-6 pt-6 border-t border-border">
               <p className="text-sm text-muted-foreground">
                 © {new Date()?.getFullYear()} NutriFlow. All rights reserved.

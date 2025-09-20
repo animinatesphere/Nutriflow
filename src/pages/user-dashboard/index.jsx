@@ -14,7 +14,75 @@ const UserDashboard = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [userProfile, setUserProfile] = useState(null);
   const navigate = useNavigate();
+  const [plannedMeals, setPlannedMeals] = useState([]);
+  const [currentWeek, setCurrentWeek] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [userId, setUserId] = useState(null);
   const [loading, setLoading] = useState(true);
+  // Manual nutrition tracking state
+  const [manualNutrition, setManualNutrition] = useState({
+    calories: { current: 0, goal: 0 },
+    protein: { current: 0, goal: 0 },
+    carbs: { current: 0, goal: 0 },
+    fats: { current: 0, goal: 0 },
+    water: { current: 0, goal: 0 },
+  });
+
+  // ADD this useEffect after your existing ones:
+  useEffect(() => {
+    const getWeekStart = () => {
+      const now = currentWeek ? new Date(currentWeek) : new Date();
+      const day = now.getDay();
+      const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+      const monday = new Date(now.setDate(diff));
+      monday.setHours(0, 0, 0, 0);
+      return monday.toISOString().slice(0, 10);
+    };
+
+    const fetchPlannedMeals = async () => {
+      const week_start = getWeekStart();
+      let userId;
+
+      if (supabase.auth.getUser) {
+        const { data } = await supabase.auth.getUser();
+        userId = data?.user?.id;
+      } else if (supabase.auth.user) {
+        userId = supabase.auth.user()?.id;
+      }
+
+      if (!userId) return;
+      setUserId(userId);
+
+      const { data, error } = await supabase
+        .from("weekly_meals")
+        .select("*, recipe:recipes(*)")
+        .eq("user_id", userId)
+        .eq("week_start", week_start);
+
+      if (!error && data) {
+        setPlannedMeals(
+          data.map((meal) => ({
+            ...meal.recipe,
+            ...meal,
+            prepTime: meal.recipe?.prep_time,
+            cookTime: meal.recipe?.cook_time,
+            tags: meal.recipe?.tags || [],
+            name: meal.recipe?.name,
+            image: meal.recipe?.image,
+            calories: meal.recipe?.calories,
+            description: meal.recipe?.description,
+            cuisine: meal.recipe?.cuisine,
+            diet: meal.recipe?.diet,
+            day: meal.day,
+            type: meal.type,
+          }))
+        );
+      }
+    };
+
+    fetchPlannedMeals();
+  }, [currentWeek, userId]);
+
   const fetchUserProfile = async () => {
     try {
       setLoading(true);
@@ -24,8 +92,6 @@ const UserDashboard = () => {
         data: { user },
         error: authError,
       } = await supabase.auth.getUser();
-      console.log("Header.jsx Supabase Auth User:", user);
-      console.log("Header.jsx Supabase Auth Error:", authError);
 
       let userId = null;
       let userEmail = null;
@@ -34,18 +100,11 @@ const UserDashboard = () => {
         // User is authenticated with Supabase
         userId = user.id;
         userEmail = user.email;
-        console.log(
-          "Header.jsx User from Supabase Auth - ID:",
-          userId,
-          "Email:",
-          userEmail
-        );
       } else {
         // Fallback to localStorage
         let userData = JSON.parse(
           localStorage.getItem("nutriflow_user") || "null"
         );
-        console.log("Header.jsx localStorage userData:", userData);
 
         if (userData) {
           if (Array.isArray(userData)) userData = userData[0];
@@ -56,13 +115,6 @@ const UserDashboard = () => {
             userData?.email ||
             userData?.user_metadata?.email ||
             userData?.user?.email;
-
-          console.log(
-            "Header.jsx User from localStorage - ID:",
-            userId,
-            "Email:",
-            userEmail
-          );
         }
       }
 
@@ -73,15 +125,12 @@ const UserDashboard = () => {
       }
 
       // Fetch profile from Supabase
-      console.log("Header.jsx: Fetching profile for user ID:", userId);
+
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", userId)
         .single();
-
-      console.log("Header.jsx Supabase profile data:", data);
-      console.log("Header.jsx Supabase profile error:", error);
 
       let profile = null;
 
@@ -104,7 +153,7 @@ const UserDashboard = () => {
         };
       } else {
         // Profile not found or error occurred
-        console.warn("Header.jsx: Profile not found, using fallback");
+
         profile = {
           name: userEmail || "User",
           email: userEmail || "No email",
@@ -115,13 +164,11 @@ const UserDashboard = () => {
 
         // If error is not just "no rows returned", log it
         if (error && error.code !== "PGRST116") {
-          console.error("Header.jsx: Error fetching profile:", error);
         }
       }
 
       setUserProfile(profile);
     } catch (err) {
-      console.error("Header.jsx: Error in fetchProfile:", err);
       // Set a minimal fallback profile
       setUserProfile({
         name: "User",
@@ -297,7 +344,19 @@ const UserDashboard = () => {
   // Event handlers
   const handleQuickLog = () => {
     console.log("Opening quick meal log...");
-    // Implementation for quick meal logging
+    // Example: Add some nutrition manually
+    const calories = 150;
+    const protein = 5;
+    const carbs = 20;
+    const fats = 3;
+
+    setManualNutrition((prev) => ({
+      calories: { ...prev.calories, current: prev.calories.current + calories },
+      protein: { ...prev.protein, current: prev.protein.current + protein },
+      carbs: { ...prev.carbs, current: prev.carbs.current + carbs },
+      fats: { ...prev.fats, current: prev.fats.current + fats },
+      water: prev.water,
+    }));
   };
 
   const handleEditMeal = (meal) => {
@@ -336,40 +395,51 @@ const UserDashboard = () => {
     <div className="min-h-screen bg-background">
       <Header />
       <main className="pt-16">
-        <div className="max-w-7xl mx-auto px-6 py-8">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-8">
           {/* Welcome Section */}
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="mb-8"
+            className="mb-6 sm:mb-8"
           >
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-              <div>
-                <h1 className="text-3xl font-heading font-bold text-foreground mb-2">
+            <div className="flex flex-col sm:flex-row sm:items-start md:items-center sm:justify-between gap-4">
+              <div className="flex-1 min-w-0">
+                <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-3xl font-heading font-bold text-foreground mb-2 leading-tight">
                   Good{" "}
                   {currentTime?.getHours() < 12
                     ? "Morning"
                     : currentTime?.getHours() < 17
                     ? "Afternoon"
                     : "Evening"}
-                  , {userProfile?.name} 👋
+                  , {userProfile?.name}{" "}
+                  <span className="hidden xs:inline">👋</span>
                 </h1>
-                <p className="text-muted-foreground">
-                  {formatDate(currentTime)} • {formatTime(currentTime)}
+                <p className="text-sm sm:text-base text-muted-foreground truncate sm:whitespace-normal">
+                  <span className="hidden sm:inline">
+                    {formatDate(currentTime)} •{" "}
+                  </span>
+                  <span className="sm:hidden">
+                    {currentTime?.toLocaleDateString()} •{" "}
+                  </span>
+                  {formatTime(currentTime)}
                 </p>
               </div>
-              <div className="mt-4 md:mt-0 flex items-center space-x-4">
-                <div className="flex items-center space-x-2 px-4 py-2 bg-success/10 text-success rounded-full border border-success/20">
-                  <div className="w-2 h-2 bg-success rounded-full animate-pulse" />
-                  <span className="text-sm font-medium">On Track</span>
-                </div>
-                <div className="text-right">
-                  <div className="text-sm text-muted-foreground">
-                    Daily Progress
+              <div className="flex flex-col sm:items-end gap-2 sm:gap-4 flex-shrink-0">
+                <div className="flex items-center justify-between sm:justify-end gap-4">
+                  <div className="flex items-center space-x-2 px-3 sm:px-4 py-2 bg-success/10 text-success rounded-full border border-success/20">
+                    <div className="w-2 h-2 bg-success rounded-full animate-pulse" />
+                    <span className="text-xs sm:text-sm font-medium whitespace-nowrap">
+                      On Track
+                    </span>
                   </div>
-                  <div className="text-xl font-heading font-bold text-primary">
-                    75%
+                  <div className="text-right">
+                    <div className="text-xs sm:text-sm text-muted-foreground whitespace-nowrap">
+                      Daily Progress
+                    </div>
+                    <div className="text-lg sm:text-xl font-heading font-bold text-primary">
+                      75%
+                    </div>
                   </div>
                 </div>
               </div>
@@ -377,48 +447,63 @@ const UserDashboard = () => {
           </motion.div>
 
           {/* Dashboard Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
             {/* Left Column - Main Content */}
-            <div className="lg:col-span-2 space-y-8">
+            <div className="xl:col-span-2 space-y-4 sm:space-y-6 lg:space-y-8">
               {/* Nutrition Summary */}
-              <NutritionSummary
-                nutritionData={nutritionData}
-                onQuickLog={handleQuickLog}
-              />
+              <div className="w-full">
+                <NutritionSummary
+                  nutritionData={manualNutrition}
+                  onQuickLog={handleQuickLog}
+                  plannedMeals={plannedMeals}
+                  selectedDate={selectedDate}
+                  userProfile={userProfile}
+                />
+              </div>
 
               {/* Weekly Progress */}
-              <WeeklyProgress
-                weeklyData={weeklyData}
-                achievements={achievements}
-              />
+              <div className="w-full">
+                <WeeklyProgress
+                  weeklyData={weeklyData}
+                  achievements={achievements}
+                />
+              </div>
 
               {/* Meal Planning Panel */}
-              <MealPlanningPanel
-                todaysMeals={todaysMeals}
-                upcomingReminders={upcomingReminders}
-                onEditMeal={handleEditMeal}
-              />
+              <div className="w-full">
+                <MealPlanningPanel
+                  todaysMeals={todaysMeals}
+                  upcomingReminders={upcomingReminders}
+                  onEditMeal={handleEditMeal}
+                />
+              </div>
             </div>
 
             {/* Right Column - Secondary Content */}
-            <div className="space-y-8">
+            <div className="space-y-4 sm:space-y-6 lg:space-y-8">
               {/* Gamification Panel */}
-              <GamificationPanel
-                currentChallenges={currentChallenges}
-                recentScores={recentScores}
-                availableGames={availableGames}
-              />
+              <div className="w-full">
+                <GamificationPanel
+                  currentChallenges={currentChallenges}
+                  recentScores={recentScores}
+                  availableGames={availableGames}
+                />
+              </div>
 
               {/* Quick Actions */}
-              <QuickActions
-                onQuickLog={handleQuickLog}
-                onBrowseRecipes={handleBrowseRecipes}
-                onStartGame={handleStartGame}
-                subscriptionTier={subscriptionData?.tier}
-              />
+              <div className="w-full">
+                <QuickActions
+                  onQuickLog={handleQuickLog}
+                  onBrowseRecipes={handleBrowseRecipes}
+                  onStartGame={handleStartGame}
+                  subscriptionTier={subscriptionData?.tier}
+                />
+              </div>
 
               {/* Subscription Status */}
-              <SubscriptionStatus subscriptionData={subscriptionData} />
+              <div className="w-full">
+                <SubscriptionStatus subscriptionData={subscriptionData} />
+              </div>
             </div>
           </div>
 
@@ -427,44 +512,48 @@ const UserDashboard = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.8 }}
-            className="mt-12 grid grid-cols-2 md:grid-cols-4 gap-6"
+            className="mt-8 sm:mt-10 lg:mt-12 grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6"
           >
-            <div className="text-center p-6 bg-card rounded-xl border border-border shadow-soft">
-              <div className="text-3xl font-heading font-bold text-primary mb-2">
+            <div className="text-center p-3 sm:p-4 md:p-6 bg-card rounded-lg sm:rounded-xl border border-border shadow-soft">
+              <div className="text-lg sm:text-2xl md:text-3xl font-heading font-bold text-primary mb-1 sm:mb-2">
                 {Math.round(
                   (nutritionData?.calories?.current /
                     nutritionData?.calories?.goal) *
                     100
-                )}
+                ) || 0}
                 %
               </div>
-              <div className="text-sm text-muted-foreground">Daily Goal</div>
-            </div>
-            <div className="text-center p-6 bg-card rounded-xl border border-border shadow-soft">
-              <div className="text-3xl font-heading font-bold text-success mb-2">
-                {
-                  weeklyData?.filter((day) => day?.calories / day?.goal >= 1)
-                    ?.length
-                }
+              <div className="text-xs sm:text-sm text-muted-foreground">
+                Daily Goal
               </div>
-              <div className="text-sm text-muted-foreground">
+            </div>
+            <div className="text-center p-3 sm:p-4 md:p-6 bg-card rounded-lg sm:rounded-xl border border-border shadow-soft">
+              <div className="text-lg sm:text-2xl md:text-3xl font-heading font-bold text-success mb-1 sm:mb-2">
+                {weeklyData?.filter((day) => day?.calories / day?.goal >= 1)
+                  ?.length || 0}
+              </div>
+              <div className="text-xs sm:text-sm text-muted-foreground">
                 Goals This Week
               </div>
             </div>
-            <div className="text-center p-6 bg-card rounded-xl border border-border shadow-soft">
-              <div className="text-3xl font-heading font-bold text-accent mb-2">
+            <div className="text-center p-3 sm:p-4 md:p-6 bg-card rounded-lg sm:rounded-xl border border-border shadow-soft">
+              <div className="text-lg sm:text-2xl md:text-3xl font-heading font-bold text-accent mb-1 sm:mb-2">
                 {currentChallenges?.reduce(
-                  (acc, challenge) => acc + challenge?.reward,
+                  (acc, challenge) => acc + (challenge?.reward || 0),
                   0
-                )}
+                ) || 0}
               </div>
-              <div className="text-sm text-muted-foreground">Total XP</div>
+              <div className="text-xs sm:text-sm text-muted-foreground">
+                Total XP
+              </div>
             </div>
-            <div className="text-center p-6 bg-card rounded-xl border border-border shadow-soft">
-              <div className="text-3xl font-heading font-bold text-secondary mb-2">
-                {todaysMeals?.length}
+            <div className="text-center p-3 sm:p-4 md:p-6 bg-card rounded-lg sm:rounded-xl border border-border shadow-soft">
+              <div className="text-lg sm:text-2xl md:text-3xl font-heading font-bold text-secondary mb-1 sm:mb-2">
+                {todaysMeals?.length || 0}
               </div>
-              <div className="text-sm text-muted-foreground">Meals Planned</div>
+              <div className="text-xs sm:text-sm text-muted-foreground">
+                Meals Planned
+              </div>
             </div>
           </motion.div>
         </div>

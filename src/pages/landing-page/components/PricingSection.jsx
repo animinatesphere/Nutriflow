@@ -1,88 +1,90 @@
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { useInView } from 'framer-motion';
-import { useRef } from 'react';
-import { Link } from 'react-router-dom';
-import Icon from '../../../components/AppIcon';
-import Button from '../../../components/ui/Button';
+import React, { useState } from "react";
+import { motion } from "framer-motion";
+import { useInView } from "framer-motion";
+import { useRef } from "react";
+import { Link } from "react-router-dom";
+import Icon from "../../../components/AppIcon";
+import Button from "../../../components/ui/Button";
 
 const PricingSection = () => {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-100px" });
-  const [billingCycle, setBillingCycle] = useState('monthly');
+  const [billingCycle, setBillingCycle] = useState("monthly");
 
   const plans = [
     {
-      id: 'free',
-      name: 'Free Starter',
-      description: 'Perfect for getting started with basic nutrition tracking',
+      id: "free",
+      name: "Free Starter",
+      description: "Perfect for getting started with basic nutrition tracking",
       price: { monthly: 0, yearly: 0 },
       badge: null,
       features: [
-        'Basic meal logging',
-        'Simple calorie tracking',
-        '3 cooking game levels',
-        'Weekly meal planning',
-        'Basic nutrition insights',
-        'Mobile app access',
-        'Community support'
+        "Basic meal logging",
+        "Simple calorie tracking",
+        "3 cooking game levels",
+        "Weekly meal planning",
+        "Basic nutrition insights",
+        "Mobile app access",
+        "Community support",
       ],
       limitations: [
-        'Limited to 5 recipes per week',
-        'Basic analytics only',
-        'No premium cooking games'
+        "Limited to 5 recipes per week",
+        "Basic analytics only",
+        "No premium cooking games",
       ],
-      cta: 'Start Free',
-      popular: false
-    },
-    {
-      id: 'premium',
-      name: 'Premium Pro',
-      description: 'Complete nutrition mastery with advanced features and personalization',
-      price: { monthly: 19.99, yearly: 199.99 },
-      badge: 'Most Popular',
-      features: [
-        'Everything in Free',
-        'Unlimited meal planning',
-        'Advanced macro tracking',
-        'All cooking game levels',
-        'AI-powered meal suggestions',
-        'Detailed nutrition analytics',
-        'Custom dietary profiles',
-        'Priority customer support',
-        'Offline recipe access',
-        'Progress export & sharing',
-        'Advanced goal setting',
-        'Nutrition expert consultations'
-      ],
-      limitations: [],
-      cta: 'Start Premium Trial',
-      popular: true,
-      savings: billingCycle === 'yearly' ? '17% off' : null
-    },
-    {
-      id: 'family',
-      name: 'Family Plan',
-      description: 'Perfect for families wanting to build healthy habits together',
-      price: { monthly: 29.99, yearly: 299.99 },
-      badge: 'Best Value',
-      features: [
-        'Everything in Premium',
-        'Up to 6 family members',
-        'Family meal planning',
-        'Kid-friendly cooking games',
-        'Family nutrition dashboard',
-        'Shared grocery lists',
-        'Family challenges & rewards',
-        'Parental controls',
-        'Multiple dietary preferences',
-        'Family progress tracking'
-      ],
-      limitations: [],
-      cta: 'Start Family Trial',
+      cta: "Start Free",
       popular: false,
-      savings: billingCycle === 'yearly' ? '17% off' : null
-    }
+    },
+    {
+      id: "premium",
+      name: "Premium Pro",
+      description:
+        "Complete nutrition mastery with advanced features and personalization",
+      price: { monthly: 19.99, yearly: 199.99 },
+      badge: "Most Popular",
+      features: [
+        "Everything in Free",
+        "Unlimited meal planning",
+        "Advanced macro tracking",
+        "All cooking game levels",
+        "AI-powered meal suggestions",
+        "Detailed nutrition analytics",
+        "Custom dietary profiles",
+        "Priority customer support",
+        "Offline recipe access",
+        "Progress export & sharing",
+        "Advanced goal setting",
+        "Nutrition expert consultations",
+      ],
+      limitations: [],
+      cta: "Start Premium Trial",
+      popular: true,
+      savings: billingCycle === "yearly" ? "17% off" : null,
+    },
+    {
+      id: "family",
+      name: "Family Plan",
+      description:
+        "Perfect for families wanting to build healthy habits together",
+      price: { monthly: 29.99, yearly: 299.99 },
+      badge: "Best Value",
+      features: [
+        "Everything in Premium",
+        "Up to 6 family members",
+        "Family meal planning",
+        "Kid-friendly cooking games",
+        "Family nutrition dashboard",
+        "Shared grocery lists",
+        "Family challenges & rewards",
+        "Parental controls",
+        "Multiple dietary preferences",
+        "Family progress tracking",
+      ],
+      limitations: [],
+      cta: "Start Family Trial",
+      popular: false,
+      savings: billingCycle === "yearly" ? "17% off" : null,
+    },
   ];
 
   const containerVariants = {
@@ -90,9 +92,9 @@ const PricingSection = () => {
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.2
-      }
-    }
+        staggerChildren: 0.2,
+      },
+    },
   };
 
   const itemVariants = {
@@ -102,9 +104,9 @@ const PricingSection = () => {
       y: 0,
       transition: {
         duration: 0.6,
-        ease: "easeOut"
-      }
-    }
+        ease: "easeOut",
+      },
+    },
   };
 
   return (
@@ -118,33 +120,39 @@ const PricingSection = () => {
         >
           <div className="inline-flex items-center px-4 py-2 bg-primary/10 rounded-full mb-6">
             <Icon name="DollarSign" size={16} color="var(--color-primary)" />
-            <span className="ml-2 text-sm font-medium text-primary">Simple Pricing</span>
+            <span className="ml-2 text-sm font-medium text-primary">
+              Simple Pricing
+            </span>
           </div>
-          
-          <h2 className="text-4xl md:text-5xl font-heading font-bold text-foreground mb-6">
+
+          <h2 className="text-[20px] sm:text-[25px] md:text-[30px] lg:text-[40px] font-heading font-bold text-foreground mb-6">
             Choose Your
             <span className="block text-primary">Nutrition Journey</span>
           </h2>
-          
+
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
-            Start free and upgrade anytime. All plans include our core features 
+            Start free and upgrade anytime. All plans include our core features
             with premium tiers offering advanced analytics and personalization.
           </p>
 
           {/* Billing Toggle */}
           <div className="inline-flex items-center bg-muted rounded-lg p-1">
             <button
-              onClick={() => setBillingCycle('monthly')}
+              onClick={() => setBillingCycle("monthly")}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-                billingCycle === 'monthly' ?'bg-card text-card-foreground shadow-soft' :'text-muted-foreground hover:text-foreground'
+                billingCycle === "monthly"
+                  ? "bg-card text-card-foreground shadow-soft"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
               Monthly
             </button>
             <button
-              onClick={() => setBillingCycle('yearly')}
+              onClick={() => setBillingCycle("yearly")}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 relative ${
-                billingCycle === 'yearly' ?'bg-card text-card-foreground shadow-soft' :'text-muted-foreground hover:text-foreground'
+                billingCycle === "yearly"
+                  ? "bg-card text-card-foreground shadow-soft"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
               Yearly
@@ -166,7 +174,7 @@ const PricingSection = () => {
               key={plan?.id}
               variants={itemVariants}
               className={`relative bg-card rounded-2xl p-8 shadow-soft hover:shadow-elevated transition-all duration-300 ${
-                plan?.popular ? 'ring-2 ring-primary scale-105' : ''
+                plan?.popular ? "ring-2 ring-primary scale-105" : ""
               }`}
             >
               {plan?.badge && (
@@ -184,7 +192,7 @@ const PricingSection = () => {
                 <p className="text-muted-foreground mb-6">
                   {plan?.description}
                 </p>
-                
+
                 <div className="mb-4">
                   <div className="flex items-baseline justify-center">
                     <span className="text-4xl font-heading font-bold text-card-foreground">
@@ -192,7 +200,7 @@ const PricingSection = () => {
                     </span>
                     {plan?.price?.[billingCycle] > 0 && (
                       <span className="text-muted-foreground ml-2">
-                        /{billingCycle === 'monthly' ? 'month' : 'year'}
+                        /{billingCycle === "monthly" ? "month" : "year"}
                       </span>
                     )}
                   </div>
@@ -223,9 +231,15 @@ const PricingSection = () => {
                   {plan?.features?.map((feature, index) => (
                     <li key={index} className="flex items-start space-x-3">
                       <div className="flex items-center justify-center w-5 h-5 bg-success/10 rounded-full mt-0.5">
-                        <Icon name="Check" size={12} color="var(--color-success)" />
+                        <Icon
+                          name="Check"
+                          size={12}
+                          color="var(--color-success)"
+                        />
                       </div>
-                      <span className="text-sm text-card-foreground">{feature}</span>
+                      <span className="text-sm text-card-foreground">
+                        {feature}
+                      </span>
                     </li>
                   ))}
                 </ul>
@@ -239,9 +253,15 @@ const PricingSection = () => {
                       {plan?.limitations?.map((limitation, index) => (
                         <li key={index} className="flex items-start space-x-3">
                           <div className="flex items-center justify-center w-5 h-5 bg-muted rounded-full mt-0.5">
-                            <Icon name="Minus" size={12} color="var(--color-muted-foreground)" />
+                            <Icon
+                              name="Minus"
+                              size={12}
+                              color="var(--color-muted-foreground)"
+                            />
                           </div>
-                          <span className="text-sm text-muted-foreground">{limitation}</span>
+                          <span className="text-sm text-muted-foreground">
+                            {limitation}
+                          </span>
                         </li>
                       ))}
                     </ul>
@@ -262,9 +282,12 @@ const PricingSection = () => {
           <div className="inline-flex items-center space-x-3 bg-success/10 rounded-lg px-6 py-4">
             <Icon name="Shield" size={24} color="var(--color-success)" />
             <div className="text-left">
-              <p className="font-heading font-semibold text-success">30-Day Money-Back Guarantee</p>
-              <p className="text-sm text-muted-foreground">
-                Try NutriFlow risk-free. Cancel anytime within 30 days for a full refund.
+              <p className="font-heading font-semibold text-success text-[12px] sm:text-[14px] md:text-[16px] lg:text-[18px]">
+                30-Day Money-Back Guarantee
+              </p>
+              <p className="text-sm text-muted-foreground text-[10px] sm:text-[12px] md:text-[14px] lg:text-[16px]">
+                Try NutriFlow risk-free. Cancel anytime within 30 days for a
+                full refund.
               </p>
             </div>
           </div>
