@@ -26,7 +26,24 @@ const RecipeBrowser = ({ onRecipeSelect, onAddToMeal }) => {
 
   useEffect(() => {
     const fetchRecipes = async () => {
-      const { data, error } = await supabase.from("recipes").select("*");
+      let query = supabase.from("recipes").select("*");
+
+      if (selectedCuisine) {
+        query = query.eq("cuisine", selectedCuisine);
+      }
+      if (selectedDiet) {
+        query = query.eq("diet", selectedDiet);
+      }
+      if (maxPrepTime) {
+        query = query.lte("prep_time", parseInt(maxPrepTime));
+      }
+      if (searchQuery) {
+        query = query.or(
+          `name.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`
+        );
+      }
+
+      const { data, error } = await query;
       if (error) {
         console.error("Supabase fetch error:", error);
         setRecipes([]);
@@ -41,8 +58,9 @@ const RecipeBrowser = ({ onRecipeSelect, onAddToMeal }) => {
         );
       }
     };
+
     fetchRecipes();
-  }, []);
+  }, [searchQuery, selectedCuisine, selectedDiet, maxPrepTime]);
 
   const cuisineOptions = [
     { value: "", label: "All Cuisines" },
@@ -234,7 +252,7 @@ const RecipeBrowser = ({ onRecipeSelect, onAddToMeal }) => {
                 {recipe?.calories}
               </span>
             </div>
-            <div className="flex items-center space-x-1">
+            {/* <div className="flex items-center space-x-1">
               <Icon
                 name="Users"
                 size={14}
@@ -243,7 +261,7 @@ const RecipeBrowser = ({ onRecipeSelect, onAddToMeal }) => {
               <span className="text-muted-foreground">
                 {recipe?.ingredients}
               </span>
-            </div>
+            </div> */}
           </div>
           <div className="flex items-center space-x-1 text-xs text-muted-foreground">
             <span>{recipe?.cuisine}</span>
@@ -299,14 +317,17 @@ const RecipeBrowser = ({ onRecipeSelect, onAddToMeal }) => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="bg-white rounded-xl shadow-xl p-8 w-full max-w-md border border-border animate-fade-in">
             <h3 className="text-lg font-heading font-bold mb-4 text-center text-foreground">
-              Plan Meal for <span className="text-primary">{planRecipe?.name}</span>
+              Plan Meal for{" "}
+              <span className="text-primary">{planRecipe?.name}</span>
             </h3>
             <div className="mb-4">
-              <label className="block text-sm font-medium mb-2 text-muted-foreground">Day</label>
+              <label className="block text-sm font-medium mb-2 text-muted-foreground">
+                Day
+              </label>
               <select
                 className="w-full border border-border rounded px-3 py-2 focus:outline-none focus:ring focus:border-primary"
                 value={planDay}
-                onChange={e => setPlanDay(e.target.value)}
+                onChange={(e) => setPlanDay(e.target.value)}
               >
                 <option value="monday">Monday</option>
                 <option value="tuesday">Tuesday</option>
@@ -318,11 +339,13 @@ const RecipeBrowser = ({ onRecipeSelect, onAddToMeal }) => {
               </select>
             </div>
             <div className="mb-6">
-              <label className="block text-sm font-medium mb-2 text-muted-foreground">Meal Type</label>
+              <label className="block text-sm font-medium mb-2 text-muted-foreground">
+                Meal Type
+              </label>
               <select
                 className="w-full border border-border rounded px-3 py-2 focus:outline-none focus:ring focus:border-primary"
                 value={planType}
-                onChange={e => setPlanType(e.target.value)}
+                onChange={(e) => setPlanType(e.target.value)}
               >
                 <option value="breakfast">Breakfast</option>
                 <option value="lunch">Lunch</option>
@@ -330,10 +353,22 @@ const RecipeBrowser = ({ onRecipeSelect, onAddToMeal }) => {
               </select>
             </div>
             <div className="flex space-x-2">
-              <Button variant="default" size="sm" fullWidth iconName="CalendarPlus" onClick={handlePlanMeal}>
+              <Button
+                variant="default"
+                size="sm"
+                fullWidth
+                iconName="CalendarPlus"
+                onClick={handlePlanMeal}
+              >
                 Confirm
               </Button>
-              <Button variant="outline" size="sm" fullWidth iconName="X" onClick={closePlanModal}>
+              <Button
+                variant="outline"
+                size="sm"
+                fullWidth
+                iconName="X"
+                onClick={closePlanModal}
+              >
                 Cancel
               </Button>
             </div>

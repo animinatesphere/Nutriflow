@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import {
   BarChart,
@@ -14,6 +14,9 @@ import {
 } from "recharts";
 import { gsap } from "gsap";
 import Icon from "../../../components/AppIcon";
+import { createClient } from "@supabase/supabase-js";
+
+import { supabase } from "../../../utils/supabaseClient";
 
 const WeeklyProgress = ({
   weeklyData = [],
@@ -22,6 +25,121 @@ const WeeklyProgress = ({
 }) => {
   const chartRef = useRef(null);
   const achievementRefs = useRef([]);
+  const [weeklyMeals, setWeeklyMeals] = useState([]);
+  const [userGameProgress, setUserGameProgress] = useState([]);
+  const [userId, setUserId] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [currentWeekStart, setCurrentWeekStart] = useState(null);
+
+  // Get current user from Supabase auth and fetch data
+  useEffect(() => {
+    const fetchWeeklyMeals = async (currentUserId) => {
+      try {
+        // Get current week's start date (Monday)
+        const now = new Date();
+        const dayOfWeek = now.getDay();
+        const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+        const weekStart = new Date(now);
+        weekStart.setDate(now.getDate() + daysToMonday);
+        weekStart.setHours(0, 0, 0, 0);
+
+        const weekStartString = weekStart.toISOString().split("T")[0];
+
+        // Set the current week start for display
+        setCurrentWeekStart(weekStart);
+
+        const { data, error } = await supabase
+          .from("weekly_meals")
+          .select(
+            `
+            *,
+            recipes (*)
+          `
+          )
+          .eq("user_id", currentUserId)
+          .eq("week_start", weekStartString);
+
+        if (error) {
+          console.error("Error fetching weekly meals:", error);
+          return;
+        }
+
+        setWeeklyMeals(data || []);
+      } catch (error) {
+        console.error("Error fetching weekly meals:", error);
+      }
+    };
+
+    const fetchUserGameProgress = async (currentUserId) => {
+      try {
+        const { data, error } = await supabase
+          .from("user_game_progress")
+          .select("*")
+          .eq("user_id", currentUserId);
+
+        if (error) {
+          console.error("Error fetching user game progress:", error);
+          return;
+        }
+
+        setUserGameProgress(data || []);
+      } catch (error) {
+        console.error("Error fetching user game progress:", error);
+      }
+    };
+
+    const getCurrentUser = async () => {
+      try {
+        const {
+          data: { user },
+          error,
+        } = await supabase.auth.getUser();
+
+        if (error) {
+          console.error("Error getting user:", error);
+          setLoading(false);
+          return;
+        }
+
+        if (user) {
+          setUserId(user.id);
+          await Promise.all([
+            fetchWeeklyMeals(user.id),
+            fetchUserGameProgress(user.id),
+          ]);
+        }
+
+        setLoading(false);
+      } catch (error) {
+        console.error("Error in getCurrentUser:", error);
+        setLoading(false);
+      }
+    };
+
+    getCurrentUser();
+
+    // Listen for auth state changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === "SIGNED_IN" && session?.user) {
+        setUserId(session.user.id);
+        await Promise.all([
+          fetchWeeklyMeals(session.user.id),
+          fetchUserGameProgress(session.user.id),
+        ]);
+      } else if (event === "SIGNED_OUT") {
+        setUserId(null);
+        setWeeklyMeals([]);
+        setUserGameProgress([]);
+      }
+    });
+
+    // Cleanup function - this is what useEffect should return
+    return () => {
+      subscription?.unsubscribe();
+    };
+  }, []);
 
   useEffect(() => {
     // GSAP animation for achievement badges
@@ -41,11 +159,63 @@ const WeeklyProgress = ({
     }
   }, [achievements]);
 
-  // Calculate XP from game progress
-  const calculateWeeklyXP = () => {
-    const weeklyXP = Array(7).fill(0);
+  // Show loading state while fetching user and data
+  if (loading) {
+    return (
+      <div className="bg-card rounded-lg sm:rounded-xl border border-border p-3 sm:p-4 md:p-6 shadow-soft">
+        <div className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <span className="ml-2 text-muted-foreground">
+            Loading weekly progress...
+          </span>
+        </div>
+      </div>
+    );
+  }
 
-    gameProgress.forEach((game) => {
+  // Show message if user is not authenticated
+  if (!userId) {
+    return (
+      <div className="bg-card rounded-lg sm:rounded-xl border border-border p-3 sm:p-4 md:p-6 shadow-soft">
+        <div className="text-center py-8">
+          <Icon name="User" size={32} className="mx-auto mb-3 opacity-30" />
+          <p className="text-sm text-muted-foreground">
+            Please sign in to view your weekly progress
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Calculate daily calories from weekly meals
+  const calculateDailyCalories = () => {
+    const dailyCalories = {
+      monday: 0,
+      tuesday: 0,
+      wednesday: 0,
+      thursday: 0,
+      friday: 0,
+      saturday: 0,
+      sunday: 0,
+    };
+
+    weeklyMeals.forEach((meal) => {
+      if (meal.recipes && meal.recipes.calories && meal.day) {
+        const dayKey = meal.day.toLowerCase();
+        if (dailyCalories.hasOwnProperty(dayKey)) {
+          dailyCalories[dayKey] += meal.recipes.calories;
+        }
+      }
+    });
+
+    return dailyCalories;
+  };
+
+  // Calculate XP from game progress
+  const calculateTotalXP = () => {
+    let totalXP = 0;
+
+    userGameProgress.forEach((game) => {
       try {
         const bestScore =
           typeof game.best_score === "string"
@@ -58,15 +228,13 @@ const WeeklyProgress = ({
           (bestScore.maxStreak || 0) * 10 +
           (bestScore.stepsCompleted || 0) * 5;
 
-        // Distribute XP across the week (you might want to use actual dates)
-        const dayIndex = Math.floor(Math.random() * 7); // Placeholder - use actual game date
-        weeklyXP[dayIndex] += xp;
+        totalXP += xp;
       } catch (error) {
         console.error("Error parsing game score:", error);
       }
     });
 
-    return weeklyXP;
+    return totalXP;
   };
 
   // Calculate weekly achievements count
@@ -82,33 +250,68 @@ const WeeklyProgress = ({
     return weeklyAchievements;
   };
 
-  const weeklyXP = calculateWeeklyXP();
+  const dailyCalories = calculateDailyCalories();
+  const totalXP = calculateTotalXP();
   const weeklyAchievements = calculateWeeklyAchievements();
 
   // Prepare chart data
   const chartData = Array.from({ length: 7 }, (_, index) => {
-    const dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-    const dayData = weeklyData[index] || { calories: 0, goal: 2000 };
+    const dayNames = [
+      "monday",
+      "tuesday",
+      "wednesday",
+      "thursday",
+      "friday",
+      "saturday",
+      "sunday",
+    ];
+    const displayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+    const dayKey = dayNames[index];
+    const dayData = weeklyData[index] || { goal: 2000 };
 
     return {
-      day: dayNames[index],
-      calories: dayData.calories || 0,
+      day: displayNames[index],
+      calories: dailyCalories[dayKey] || 0,
       calorieGoal: dayData.goal || 2000,
-      xp: weeklyXP[index],
+      xp: Math.floor(totalXP / 7), // Distribute XP across the week
       achievements: weeklyAchievements[index],
-      completion: ((dayData.calories || 0) / (dayData.goal || 2000)) * 100,
+      completion: ((dailyCalories[dayKey] || 0) / (dayData.goal || 2000)) * 100,
     };
   });
 
   // Calculate totals
-  const totalCalories = chartData.reduce((acc, day) => acc + day.calories, 0);
-  const totalXP = chartData.reduce((acc, day) => acc + day.xp, 0);
+  const totalCalories = Object.values(dailyCalories).reduce(
+    (acc, calories) => acc + calories,
+    0
+  );
   const totalAchievements = chartData.reduce(
     (acc, day) => acc + day.achievements,
     0
   );
   const averageCompletion =
     chartData.reduce((acc, day) => acc + day.completion, 0) / 7;
+
+  // Calculate game statistics
+  const gameStats = userGameProgress.reduce(
+    (acc, game) => {
+      try {
+        const score =
+          typeof game.best_score === "string"
+            ? JSON.parse(game.best_score)
+            : game.best_score;
+
+        return {
+          totalScore: acc.totalScore + (score.score || 0),
+          bestStreak: Math.max(acc.bestStreak, score.maxStreak || 0),
+          totalSteps: acc.totalSteps + (score.stepsCompleted || 0),
+          gamesPlayed: acc.gamesPlayed + (game.times_played || 0),
+        };
+      } catch {
+        return acc;
+      }
+    },
+    { totalScore: 0, bestStreak: 0, totalSteps: 0, gamesPlayed: 0 }
+  );
 
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
@@ -147,9 +350,21 @@ const WeeklyProgress = ({
       className="bg-card rounded-lg sm:rounded-xl border border-border p-3 sm:p-4 md:p-6 shadow-soft"
     >
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 sm:mb-6">
-        <h2 className="text-lg sm:text-xl font-heading font-bold text-foreground">
-          Weekly Progress
-        </h2>
+        <div className="flex flex-col">
+          <h2 className="text-lg sm:text-xl font-heading font-bold text-foreground">
+            Weekly Progress
+          </h2>
+          {currentWeekStart && (
+            <span className="text-xs text-muted-foreground">
+              Week of{" "}
+              {currentWeekStart.toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              })}
+            </span>
+          )}
+        </div>
         <div className="flex items-center space-x-2 px-3 py-1 bg-muted rounded-full self-start sm:self-auto">
           <Icon
             name="TrendingUp"
@@ -186,7 +401,7 @@ const WeeklyProgress = ({
           className="text-center p-2 sm:p-3 bg-accent/10 rounded-lg border border-accent/20"
         >
           <div className="text-lg sm:text-2xl font-heading font-bold text-accent">
-            {totalXP.toLocaleString()}
+            {gameStats.totalScore}
           </div>
           <div className="text-[10px] sm:text-xs text-muted-foreground">
             Total XP
@@ -350,7 +565,7 @@ const WeeklyProgress = ({
       </div>
 
       {/* Game Progress Summary */}
-      {gameProgress.length > 0 && (
+      {userGameProgress.length > 0 && (
         <div className="border-t border-border pt-3 sm:pt-4 mt-3 sm:mt-4">
           <h3 className="text-sm sm:text-lg font-heading font-semibold text-foreground mb-3">
             Game Performance
@@ -358,17 +573,7 @@ const WeeklyProgress = ({
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 text-center">
             <div className="p-2 sm:p-3 bg-blue-50 rounded-lg">
               <div className="text-lg sm:text-xl font-bold text-blue-600">
-                {gameProgress.reduce((acc, game) => {
-                  try {
-                    const score =
-                      typeof game.best_score === "string"
-                        ? JSON.parse(game.best_score)
-                        : game.best_score;
-                    return acc + (score.score || 0);
-                  } catch {
-                    return acc;
-                  }
-                }, 0)}
+                {gameStats.totalScore}
               </div>
               <div className="text-[10px] sm:text-xs text-blue-600">
                 Total Score
@@ -377,17 +582,7 @@ const WeeklyProgress = ({
 
             <div className="p-2 sm:p-3 bg-green-50 rounded-lg">
               <div className="text-lg sm:text-xl font-bold text-green-600">
-                {gameProgress.reduce((acc, game) => {
-                  try {
-                    const score =
-                      typeof game.best_score === "string"
-                        ? JSON.parse(game.best_score)
-                        : game.best_score;
-                    return Math.max(acc, score.maxStreak || 0);
-                  } catch {
-                    return acc;
-                  }
-                }, 0)}
+                {gameStats.bestStreak}
               </div>
               <div className="text-[10px] sm:text-xs text-green-600">
                 Best Streak
@@ -396,17 +591,7 @@ const WeeklyProgress = ({
 
             <div className="p-2 sm:p-3 bg-purple-50 rounded-lg">
               <div className="text-lg sm:text-xl font-bold text-purple-600">
-                {gameProgress.reduce((acc, game) => {
-                  try {
-                    const score =
-                      typeof game.best_score === "string"
-                        ? JSON.parse(game.best_score)
-                        : game.best_score;
-                    return acc + (score.stepsCompleted || 0);
-                  } catch {
-                    return acc;
-                  }
-                }, 0)}
+                {gameStats.totalSteps}
               </div>
               <div className="text-[10px] sm:text-xs text-purple-600">
                 Steps Done
@@ -415,10 +600,7 @@ const WeeklyProgress = ({
 
             <div className="p-2 sm:p-3 bg-orange-50 rounded-lg">
               <div className="text-lg sm:text-xl font-bold text-orange-600">
-                {gameProgress.reduce(
-                  (acc, game) => acc + (game.times_played || 0),
-                  0
-                )}
+                {gameStats.gamesPlayed}
               </div>
               <div className="text-[10px] sm:text-xs text-orange-600">
                 Games Played
