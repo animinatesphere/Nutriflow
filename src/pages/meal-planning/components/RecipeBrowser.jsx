@@ -28,15 +28,9 @@ const RecipeBrowser = ({ onRecipeSelect, onAddToMeal }) => {
     const fetchRecipes = async () => {
       let query = supabase.from("recipes").select("*");
 
-      if (selectedCuisine) {
-        query = query.eq("cuisine", selectedCuisine);
-      }
-      if (selectedDiet) {
-        query = query.eq("diet", selectedDiet);
-      }
-      if (maxPrepTime) {
-        query = query.lte("prep_time", parseInt(maxPrepTime));
-      }
+      if (selectedCuisine) query = query.eq("cuisine", selectedCuisine);
+      if (selectedDiet) query = query.eq("diet", selectedDiet);
+      if (maxPrepTime) query = query.lte("prep_time", parseInt(maxPrepTime));
       if (searchQuery) {
         query = query.or(
           `name.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`
@@ -47,7 +41,7 @@ const RecipeBrowser = ({ onRecipeSelect, onAddToMeal }) => {
       if (error) {
         console.error("Supabase fetch error:", error);
         setRecipes([]);
-      } else if (data) {
+      } else {
         setRecipes(
           data.map((r) => ({
             ...r,

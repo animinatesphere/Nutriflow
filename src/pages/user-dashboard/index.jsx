@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { supabase } from "../../utils/supabaseClient";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -19,6 +19,34 @@ const UserDashboard = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [userId, setUserId] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  const chartRef = useRef(null);
+  const achievementRefs = useRef([]);
+  const [weeklyMeals, setWeeklyMeals] = useState([]);
+  const [userGameProgress, setUserGameProgress] = useState([]);
+
+  const [currentWeekStart, setCurrentWeekStart] = useState(null);
+  const gameStats = userGameProgress.reduce(
+    (acc, game) => {
+      try {
+        const score =
+          typeof game.best_score === "string"
+            ? JSON.parse(game.best_score)
+            : game.best_score;
+
+        return {
+          totalScore: acc.totalScore + (score.score || 0),
+          bestStreak: Math.max(acc.bestStreak, score.maxStreak || 0),
+          totalSteps: acc.totalSteps + (score.stepsCompleted || 0),
+          gamesPlayed: acc.gamesPlayed + (game.times_played || 0),
+        };
+      } catch {
+        return acc;
+      }
+    },
+    { totalScore: 0, bestStreak: 0, totalSteps: 0, gamesPlayed: 0 }
+  );
+
   // Manual nutrition tracking state
   const [manualNutrition, setManualNutrition] = useState({
     calories: { current: 0, goal: 0 },
@@ -27,6 +55,114 @@ const UserDashboard = () => {
     fats: { current: 0, goal: 0 },
     water: { current: 0, goal: 0 },
   });
+  useEffect(() => {
+    const fetchWeeklyMeals = async (currentUserId) => {
+      try {
+        // Get current week's start date (Monday)
+        const now = new Date();
+        const dayOfWeek = now.getDay();
+        const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+        const weekStart = new Date(now);
+        weekStart.setDate(now.getDate() + daysToMonday);
+        weekStart.setHours(0, 0, 0, 0);
+
+        const weekStartString = weekStart.toISOString().split("T")[0];
+
+        // Set the current week start for display
+        setCurrentWeekStart(weekStart);
+
+        const { data, error } = await supabase
+          .from("weekly_meals")
+          .select(
+            `
+            *,
+            recipes (*)
+          `
+          )
+          .eq("user_id", currentUserId)
+          .eq("week_start", weekStartString);
+
+        if (error) {
+          console.error("Error fetching weekly meals:", error);
+          return;
+        }
+
+        setWeeklyMeals(data || []);
+      } catch (error) {
+        console.error("Error fetching weekly meals:", error);
+      }
+    };
+
+    const fetchUserGameProgress = async (currentUserId) => {
+      try {
+        const { data, error } = await supabase
+          .from("user_game_progress")
+          .select("*")
+          .eq("user_id", currentUserId);
+
+        if (error) {
+          console.error("Error fetching user game progress:", error);
+          return;
+        }
+
+        setUserGameProgress(data || []);
+      } catch (error) {
+        console.error("Error fetching user game progress:", error);
+      }
+    };
+
+    const getCurrentUser = async () => {
+      try {
+        const {
+          data: { user },
+          error,
+        } = await supabase.auth.getUser();
+
+        if (error) {
+          console.error("Error getting user:", error);
+          setLoading(false);
+          return;
+        }
+
+        if (user) {
+          setUserId(user.id);
+          await Promise.all([
+            fetchWeeklyMeals(user.id),
+            fetchUserGameProgress(user.id),
+          ]);
+        }
+
+        setLoading(false);
+      } catch (error) {
+        console.error("Error in getCurrentUser:", error);
+        setLoading(false);
+      }
+    };
+
+    getCurrentUser();
+
+    // Listen for auth state changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === "SIGNED_IN" && session?.user) {
+        setUserId(session.user.id);
+        await Promise.all([
+          fetchWeeklyMeals(session.user.id),
+          fetchUserGameProgress(session.user.id),
+        ]);
+      } else if (event === "SIGNED_OUT") {
+        setUserId(null);
+        setWeeklyMeals([]);
+        setUserGameProgress([]);
+      }
+    });
+
+    // Cleanup function - this is what useEffect should return
+    return () => {
+      subscription?.unsubscribe();
+    };
+  }, []);
 
   // ADD this useEffect after your existing ones:
   useEffect(() => {
@@ -538,10 +674,7 @@ const UserDashboard = () => {
             </div>
             <div className="text-center p-3 sm:p-4 md:p-6 bg-card rounded-lg sm:rounded-xl border border-border shadow-soft">
               <div className="text-lg sm:text-2xl md:text-3xl font-heading font-bold text-accent mb-1 sm:mb-2">
-                {currentChallenges?.reduce(
-                  (acc, challenge) => acc + (challenge?.reward || 0),
-                  0
-                ) || 0}
+                {gameStats.totalScore}
               </div>
               <div className="text-xs sm:text-sm text-muted-foreground">
                 Total XP

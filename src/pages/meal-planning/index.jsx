@@ -1,51 +1,100 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
-import Header from '../../components/ui/Header';
-import WeeklyCalendar from './components/WeeklyCalendar';
-import RecipeBrowser from './components/RecipeBrowser';
-import MealPlanningContainer from './components/MealPlanningContainer';
-import NutritionSummary from './components/NutritionSummary';
-import ShoppingList from './components/ShoppingList';
-import MealSuggestions from './components/MealSuggestions';
-import Icon from '../../components/AppIcon';
-import Button from '../../components/ui/Button';
-
+import React, { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
+import Header from "../../components/ui/Header";
+import WeeklyCalendar from "./components/WeeklyCalendar";
+import RecipeBrowser from "./components/RecipeBrowser";
+import MealPlanningContainer from "./components/MealPlanningContainer";
+import NutritionSummary from "./components/NutritionSummary";
+import ShoppingList from "./components/ShoppingList";
+import MealSuggestions from "./components/MealSuggestions";
+import Icon from "../../components/AppIcon";
+import Button from "../../components/ui/Button";
+import { supabase } from "../../utils/supabaseClient";
 const MealPlanningPage = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('calendar');
+  const [activeTab, setActiveTab] = useState("calendar");
   const [currentWeek, setCurrentWeek] = useState(new Date());
   const [selectedMeal, setSelectedMeal] = useState(null);
   const [showMealModal, setShowMealModal] = useState(false);
-
+  const [userId, setUserId] = useState(null);
   // Fetch planned meals from Supabase
   const [plannedMeals, setPlannedMeals] = useState([]);
 
   useEffect(() => {
     const fetchMeals = async () => {
-      const userData = JSON.parse(localStorage.getItem('nutriflow_user'));
+      const userData = JSON.parse(localStorage.getItem("nutriflow_user"));
       const userId = userData?.id || userData?.user?.id;
       if (!userId) return;
       const { data, error } = await supabase
-        .from('planned_meals')
-        .select('*')
-        .eq('user_id', userId);
+        .from("planned_meals")
+        .select("*")
+        .eq("user_id", userId);
       if (!error && data) {
         // Map macros for compatibility with old code
         setPlannedMeals(
-          data.map(meal => ({
+          data.map((meal) => ({
             ...meal,
             macros: {
               protein: meal.protein,
               carbs: meal.carbs,
-              fat: meal.fat
-            }
+              fat: meal.fat,
+            },
           }))
         );
       }
     };
     fetchMeals();
   }, []);
+  useEffect(() => {
+    // Get start of week (Monday)
+    const getWeekStart = () => {
+      const now = currentWeek ? new Date(currentWeek) : new Date();
+      const day = now.getDay();
+      const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+      const monday = new Date(now.setDate(diff));
+      monday.setHours(0, 0, 0, 0);
+      return monday.toISOString().slice(0, 10);
+    };
+
+    const fetchPlannedMeals = async () => {
+      const week_start = getWeekStart();
+      let userId;
+      if (supabase.auth.getUser) {
+        const { data } = await supabase.auth.getUser();
+        userId = data?.user?.id;
+      } else if (supabase.auth.user) {
+        userId = supabase.auth.user()?.id;
+      }
+      if (!userId) return;
+      const { data, error } = await supabase
+        .from("weekly_meals")
+        .select("*, recipe:recipes(*)")
+        .eq("user_id", userId)
+        .eq("week_start", week_start);
+
+      if (!error && data) {
+        setPlannedMeals(
+          data.map((meal) => ({
+            ...meal.recipe,
+            ...meal,
+            prepTime: meal.recipe?.prep_time,
+            cookTime: meal.recipe?.cook_time,
+            tags: meal.recipe?.tags || [],
+            name: meal.recipe?.name,
+            image: meal.recipe?.image,
+            calories: meal.recipe?.calories,
+            description: meal.recipe?.description,
+            cuisine: meal.recipe?.cuisine,
+            diet: meal.recipe?.diet,
+            day: meal.day,
+            type: meal.type,
+          }))
+        );
+      }
+    };
+    fetchPlannedMeals();
+  }, [currentWeek, userId]);
 
   // Supabase Table Mapping for Admin Management:
   // Table: planned_meals
@@ -69,46 +118,46 @@ const MealPlanningPage = () => {
     calories: 12450,
     protein: 520,
     carbs: 1240,
-    fat: 380
+    fat: 380,
   };
 
   const nutritionGoals = {
     calories: 14000,
     protein: 600,
     carbs: 1400,
-    fat: 400
+    fat: 400,
   };
 
   const userPreferences = {
-    cuisines: ['Mediterranean', 'Asian', 'American'],
-    dietaryRestrictions: ['Vegetarian'],
+    cuisines: ["Mediterranean", "Asian", "American"],
+    dietaryRestrictions: ["Vegetarian"],
     allergies: [],
     preferredMealTimes: {
-      breakfast: '08:00',
-      lunch: '13:00',
-      dinner: '19:00'
-    }
+      breakfast: "08:00",
+      lunch: "13:00",
+      dinner: "19:00",
+    },
   };
 
   const tabs = [
-    { id: 'calendar', name: 'Weekly Calendar', icon: 'Calendar' },
-    { id: 'recipes', name: 'Recipe Browser', icon: 'Search' },
-    { id: 'nutrition', name: 'Nutrition Summary', icon: 'Target' },
-    { id: 'shopping', name: 'Shopping List', icon: 'ShoppingCart' },
-    { id: 'suggestions', name: 'Meal Suggestions', icon: 'Sparkles' }
+    { id: "calendar", name: "Weekly Calendar", icon: "Calendar" },
+    { id: "recipes", name: "Recipe Browser", icon: "Search" },
+    { id: "nutrition", name: "Nutrition Summary", icon: "Target" },
+    { id: "shopping", name: "Shopping List", icon: "ShoppingCart" },
+    { id: "suggestions", name: "Meal Suggestions", icon: "Sparkles" },
   ];
 
   useEffect(() => {
     // Set page title
-    document.title = 'Meal Planning - NutriFlow';
-    
+    document.title = "Meal Planning - NutriFlow";
+
     // Scroll to top on mount
     window.scrollTo(0, 0);
   }, []);
 
   const handleWeekChange = (direction) => {
     const newWeek = new Date(currentWeek);
-    if (direction === 'next') {
+    if (direction === "next") {
       newWeek?.setDate(newWeek?.getDate() + 7);
     } else {
       newWeek?.setDate(newWeek?.getDate() - 7);
@@ -122,49 +171,49 @@ const MealPlanningPage = () => {
   };
 
   const handleMealRemove = (mealId) => {
-    setPlannedMeals(prev => prev?.filter(meal => meal?.id !== mealId));
+    setPlannedMeals((prev) => prev?.filter((meal) => meal?.id !== mealId));
   };
 
   const handleAddMeal = (day, mealType) => {
     // Navigate to recipe browser or show meal selection modal
-    setActiveTab('recipes');
+    setActiveTab("recipes");
   };
 
   const handleRecipeSelect = (recipe) => {
     // Handle recipe selection logic
-    console.log('Selected recipe:', recipe);
+    console.log("Selected recipe:", recipe);
   };
 
   const handleAddToMeal = (recipe) => {
     // Add recipe to meal plan
     const newMeal = {
       id: Date.now(),
-      day: 'monday', // This would be dynamic based on user selection
-      type: 'breakfast', // This would be dynamic based on user selection
+      day: "monday", // This would be dynamic based on user selection
+      type: "breakfast", // This would be dynamic based on user selection
       name: recipe?.name,
       image: recipe?.image,
       calories: recipe?.calories,
       prepTime: recipe?.prepTime,
-      macros: recipe?.macros || { protein: 20, carbs: 30, fat: 15 }
+      macros: recipe?.macros || { protein: 20, carbs: 30, fat: 15 },
     };
-    
-    setPlannedMeals(prev => [...prev, newMeal]);
-    setActiveTab('calendar');
+
+    setPlannedMeals((prev) => [...prev, newMeal]);
+    setActiveTab("calendar");
   };
 
   const handleGoalUpdate = () => {
     // Handle nutrition goal updates
-    console.log('Update nutrition goals');
+    console.log("Update nutrition goals");
   };
 
   const handleGenerateShoppingList = () => {
     // Generate shopping list from planned meals
-    console.log('Generate shopping list');
+    console.log("Generate shopping list");
   };
 
   const handleExportShoppingList = () => {
     // Export shopping list
-    console.log('Export shopping list');
+    console.log("Export shopping list");
   };
 
   const handleAddSuggestion = (suggestion) => {
@@ -173,12 +222,12 @@ const MealPlanningPage = () => {
 
   const handleDismissSuggestion = (suggestionId) => {
     // Handle dismissing suggestion
-    console.log('Dismiss suggestion:', suggestionId);
+    console.log("Dismiss suggestion:", suggestionId);
   };
 
   const renderTabContent = () => {
     switch (activeTab) {
-      case 'calendar':
+      case "calendar":
         return (
           <WeeklyCalendar
             currentWeek={currentWeek}
@@ -189,11 +238,9 @@ const MealPlanningPage = () => {
             onAddMeal={handleAddMeal}
           />
         );
-      case 'recipes':
-        return (
-          <MealPlanningContainer onAddToMeal={handleAddToMeal} />
-        );
-      case 'nutrition':
+      case "recipes":
+        return <MealPlanningContainer onAddToMeal={handleAddToMeal} />;
+      case "nutrition":
         return (
           <NutritionSummary
             weeklyData={weeklyNutritionData}
@@ -201,7 +248,7 @@ const MealPlanningPage = () => {
             onGoalUpdate={handleGoalUpdate}
           />
         );
-      case 'shopping':
+      case "shopping":
         return (
           <ShoppingList
             plannedMeals={plannedMeals}
@@ -209,7 +256,7 @@ const MealPlanningPage = () => {
             onExportList={handleExportShoppingList}
           />
         );
-      case 'suggestions':
+      case "suggestions":
         return (
           <MealSuggestions
             userPreferences={userPreferences}
@@ -236,30 +283,35 @@ const MealPlanningPage = () => {
                   Meal Planning
                 </h1>
                 <p className="text-muted-foreground max-w-2xl">
-                  Organize your weekly meals, discover new recipes, and maintain consistent nutrition goals 
-                  through our comprehensive meal planning tools.
+                  Organize your weekly meals, discover new recipes, and maintain
+                  consistent nutrition goals through our comprehensive meal
+                  planning tools.
                 </p>
               </div>
-              
+
               <div className="hidden lg:flex items-center space-x-4">
                 <div className="text-center">
                   <div className="text-2xl font-heading font-bold text-primary">
                     {plannedMeals?.length}
                   </div>
-                  <div className="text-xs text-muted-foreground">Meals Planned</div>
+                  <div className="text-xs text-muted-foreground">
+                    Meals Planned
+                  </div>
                 </div>
                 <div className="w-px h-12 bg-border" />
                 <div className="text-center">
                   <div className="text-2xl font-heading font-bold text-success">
                     85%
                   </div>
-                  <div className="text-xs text-muted-foreground">Week Complete</div>
+                  <div className="text-xs text-muted-foreground">
+                    Week Complete
+                  </div>
                 </div>
                 <div className="w-px h-12 bg-border" />
                 <Button
                   variant="default"
                   iconName="Plus"
-                  onClick={() => setActiveTab('recipes')}
+                  onClick={() => setActiveTab("recipes")}
                 >
                   Add Recipe
                 </Button>
@@ -278,14 +330,14 @@ const MealPlanningPage = () => {
                   onClick={() => setActiveTab(tab?.id)}
                   className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-200 whitespace-nowrap ${
                     activeTab === tab?.id
-                      ? 'bg-primary text-primary-foreground shadow-soft'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                      ? "bg-primary text-primary-foreground shadow-soft"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
                   }`}
                 >
-                  <Icon 
-                    name={tab?.icon} 
-                    size={16} 
-                    color={activeTab === tab?.id ? 'white' : 'currentColor'} 
+                  <Icon
+                    name={tab?.icon}
+                    size={16}
+                    color={activeTab === tab?.id ? "white" : "currentColor"}
                   />
                   <span className="font-body font-medium">{tab?.name}</span>
                 </button>
@@ -314,14 +366,14 @@ const MealPlanningPage = () => {
               variant="default"
               size="icon"
               iconName="Plus"
-              onClick={() => setActiveTab('recipes')}
+              onClick={() => setActiveTab("recipes")}
               className="rounded-full shadow-elevated"
             />
             <Button
               variant="secondary"
               size="icon"
               iconName="ShoppingCart"
-              onClick={() => setActiveTab('shopping')}
+              onClick={() => setActiveTab("shopping")}
               className="rounded-full shadow-elevated"
             />
           </div>
@@ -349,24 +401,28 @@ const MealPlanningPage = () => {
                   <Icon name="X" size={16} />
                 </button>
               </div>
-              
+
               <div className="p-6">
                 <h3 className="text-xl font-heading font-bold text-foreground mb-2">
                   {selectedMeal?.name}
                 </h3>
-                
+
                 <div className="grid grid-cols-3 gap-4 mb-4 text-center">
                   <div>
                     <div className="text-lg font-heading font-bold text-primary">
                       {selectedMeal?.calories}
                     </div>
-                    <div className="text-xs text-muted-foreground">Calories</div>
+                    <div className="text-xs text-muted-foreground">
+                      Calories
+                    </div>
                   </div>
                   <div>
                     <div className="text-lg font-heading font-bold text-foreground">
                       {selectedMeal?.prepTime}m
                     </div>
-                    <div className="text-xs text-muted-foreground">Prep Time</div>
+                    <div className="text-xs text-muted-foreground">
+                      Prep Time
+                    </div>
                   </div>
                   <div>
                     <div className="text-lg font-heading font-bold text-success">
@@ -375,12 +431,12 @@ const MealPlanningPage = () => {
                     <div className="text-xs text-muted-foreground">Protein</div>
                   </div>
                 </div>
-                
+
                 <div className="flex space-x-2">
                   <Button
                     variant="outline"
                     fullWidth
-                    onClick={() => navigate('/cooking-games')}
+                    onClick={() => navigate("/cooking-games")}
                   >
                     Cook Now
                   </Button>
@@ -389,7 +445,7 @@ const MealPlanningPage = () => {
                     fullWidth
                     onClick={() => {
                       setShowMealModal(false);
-                      setActiveTab('recipes');
+                      setActiveTab("recipes");
                     }}
                   >
                     View Recipe
